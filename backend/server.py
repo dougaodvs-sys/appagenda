@@ -1986,6 +1986,7 @@ app.include_router(api)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in os.environ.get("CORS_ORIGINS", "").split(",") if origin.strip()],
+    allow_origin_regex=r"https://([a-z0-9-]+\.)*(emergentagent\.com|emergentcf\.cloud|emergent\.host)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
