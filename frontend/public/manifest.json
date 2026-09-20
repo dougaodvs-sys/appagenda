@@ -1,0 +1,18 @@
+{
+  "short_name": "Studio Aurea",
+  "name": "Studio Aurea",
+  "description": "Agendamento e gestão do Studio",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0a0a0a",
+  "background_color": "#0a0a0a",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
