@@ -1,0 +1,55 @@
+.App { min-height: 100vh; }
+
+@media (max-width: 639px) {
+  .responsive-shell > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .responsive-shell [class~="grid-cols-2"],
+  .responsive-shell [class~="grid-cols-3"],
+  .responsive-shell [class~="grid-cols-4"],
+  .responsive-shell [class~="grid-cols-5"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .responsive-shell [class~="col-span-2"] {
+    grid-column: span 1 / span 1;
+  }
+
+  .responsive-shell [class~="flex"][class~="justify-between"]:not(header) {
+    flex-wrap: wrap;
+  }
+
+  .responsive-shell input,
+  .responsive-shell textarea,
+  .responsive-shell select {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  [role="dialog"] {
+    width: calc(100vw - 1.5rem);
+    max-width: calc(100vw - 1.5rem);
+    max-height: calc(100vh - 1.5rem);
+    overflow-y: auto;
+  }
+
+  [role="dialog"] [class~="grid-cols-2"],
+  [role="dialog"] [class~="grid-cols-3"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  [role="dialog"] [class~="col-span-2"] {
+    grid-column: span 1 / span 1;
+  }
+
+  [role="dialog"] [class~="flex"][class~="justify-end"] {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .responsive-shell button {
+    max-width: 100%;
+  }
+}

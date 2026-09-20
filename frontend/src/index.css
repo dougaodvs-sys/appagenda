@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Manrope:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: 'Manrope', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: hsl(0 0% 4%);
+    color: hsl(0 0% 96%);
+}
+
+.font-display { font-family: 'Playfair Display', serif; }
+
+@layer base {
+    :root {
+        --background: 0 0% 4%;
+        --foreground: 0 0% 96%;
+        --card: 0 0% 8%;
+        --card-foreground: 0 0% 96%;
+        --popover: 0 0% 8%;
+        --popover-foreground: 0 0% 96%;
+        --primary: 46 65% 52%;
+        --primary-foreground: 0 0% 4%;
+        --secondary: 0 0% 12%;
+        --secondary-foreground: 0 0% 96%;
+        --muted: 0 0% 12%;
+        --muted-foreground: 0 0% 65%;
+        --accent: 46 65% 52%;
+        --accent-foreground: 0 0% 4%;
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 0 0% 15%;
+        --input: 0 0% 15%;
+        --ring: 46 65% 52%;
+        --radius: 0.5rem;
+    }
+    .dark {
+        --background: 0 0% 4%;
+        --foreground: 0 0% 96%;
+        --card: 0 0% 8%;
+        --card-foreground: 0 0% 96%;
+        --popover: 0 0% 8%;
+        --popover-foreground: 0 0% 96%;
+        --primary: 46 65% 52%;
+        --primary-foreground: 0 0% 4%;
+        --secondary: 0 0% 12%;
+        --secondary-foreground: 0 0% 96%;
+        --muted: 0 0% 12%;
+        --muted-foreground: 0 0% 65%;
+        --accent: 46 65% 52%;
+        --accent-foreground: 0 0% 4%;
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 0 0% 15%;
+        --input: 0 0% 15%;
+        --ring: 46 65% 52%;
+    }
+}
+
+@layer base {
+    * { @apply border-border; }
+    body { @apply bg-background text-foreground; }
+    ::selection { background: hsl(46 65% 52% / 0.35); color: hsl(0 0% 98%); }
+    input, textarea, select { color: hsl(0 0% 96%); }
+}
+
+.gold-glow { box-shadow: 0 0 0 1px rgba(212, 169, 58, 0.35), 0 10px 40px -10px rgba(212, 169, 58, 0.25); }
+.hairline { border-color: hsl(0 0% 15%); }
