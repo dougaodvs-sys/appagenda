@@ -1,0 +1,23 @@
+{
+  "summary": "Frontend-only regression test of alias-host login CORS fix in /app/frontend/src/lib/api.js. All 4 scenarios PASS: (1) valid login at alias host importa-projeto.preview.emergentagent.com redirects to /plataforma/studios with 'Bem-vinda, Super Admin' toast, all /api requests go to the alias origin (same-origin), no CORS errors; (2) wrong password at alias host shows 'Credenciais inválidas'; (3) main host REACT_APP_BACKEND_URL login still works (regression OK); (4) /minha-conta shows Registro de acessos populated with new login entries and /plataforma/admins loads the super admins list.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "api.js BACKEND_URL resolution correctly falls back to window.location.origin when page host differs from REACT_APP_BACKEND_URL, avoiding cross-origin CORS issues via platform proxy.",
+    "The 401 console errors seen on public pages are expected pre-login /api/auth/me probes and are harmless."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested", "frontend": "100%"},
+  "test_credentials": "Super admin dvssystem@hotmail.com / Douglas0101 (verified working on both alias and main hosts)",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The alias-host CORS fix in /app/frontend/src/lib/api.js is verified end-to-end. API calls from https://importa-projeto.preview.emergentagent.com now target the same origin. Both alias and main host logins succeed, wrong password message is correct ('Credenciais inválidas'), and login history persists new entries.",
+  "rca of the issue": "Original bug: alias host served the frontend, but axios used REACT_APP_BACKEND_URL (main host), producing cross-origin /api requests. Platform proxy rewrote Origin header so browser blocked responses with CORS. Fix uses window.location.origin when it differs from REACT_APP_BACKEND_URL to keep API calls same-origin. Verified: no CORS errors in console, network shows /api on the current host, session cookie works, /api/auth/me returns 200 (redirect to /plataforma/studios succeeds)."
+}

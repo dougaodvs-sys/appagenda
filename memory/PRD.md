@@ -43,6 +43,7 @@ Stack: FastAPI + MongoDB + React (CRA/craco) + Tailwind + shadcn/ui.
 - Causa raiz: o ingress da plataforma reescreve o header `Origin` para `https://<id>.cluster-N.preview.emergentcf.cloud`; o CORSMiddleware só aceitava `CORS_ORIGINS` exatos → preflight `OPTIONS /api/auth/login` 400 "Disallowed CORS origin" → axios erro de rede → toast "Falha no login".
 - Fix: `allow_origin_regex` para `*.emergentagent.com | *.emergentcf.cloud | *.emergent.host` além de `CORS_ORIGINS` (server.py, final). Testado: test_reports/iteration_3.json.
 - Lição: não confiar em whitelist exata de Origin neste ambiente; sempre testar preflight pela URL pública, não só localhost.
+- 2ª causa (print do usuário): ele acessa pelo alias `importa-projeto.preview.emergentagent.com` ≠ `REACT_APP_BACKEND_URL` → chamadas cross-origin; como o proxy reescreve o Origin, o `Access-Control-Allow-Origin` nunca bate com o origin real do navegador. Fix: `lib/api.js` usa `window.location.origin` como `BACKEND_URL` quando a página está em https num host diferente do `.env` (chamadas same-origin). Testado no alias e no host principal: test_reports/iteration_4.json.
 
 ## Next backlog
 - P1: Editar nome/e-mail de um super admin e redefinir senha pelo super admin.
