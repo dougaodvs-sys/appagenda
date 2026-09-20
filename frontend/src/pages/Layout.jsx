@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Bell, LogOut, LayoutDashboard, Calendar, Users, Scissors, Ticket, Ban, Settings as SettingsIcon, User, Menu, Images, Building2, Copy, BarChart3 } from "lucide-react";
+import { Bell, LogOut, LayoutDashboard, Calendar, Users, Scissors, Ticket, Ban, Settings as SettingsIcon, User, Menu, Images, Building2, Copy, BarChart3, UserCog } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -13,6 +13,7 @@ import InstallAppButton from "@/components/InstallAppButton";
 const NAV = {
   super_admin: [
     { to: "/plataforma/studios", label: "Studios", icon: Building2 },
+    { to: "/minha-conta", label: "Minha conta", icon: UserCog },
   ],
   manager: [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },

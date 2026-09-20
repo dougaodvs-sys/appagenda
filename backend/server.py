@@ -361,6 +361,13 @@ class ChangePasswordIn(BaseModel):
     current_password: str
     new_password: str = Field(min_length=8)
 
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+class ResetPasswordIn(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8)
+
 # =========================
 # Startup
 # =========================
@@ -405,6 +412,8 @@ async def startup():
     await db.professionals.create_index([("studio_id", 1), ("email", 1)], unique=True)
     await db.appointments.create_index([("items.professional_id", 1), ("items.start", 1)])
     await db.coupons.create_index("code", unique=True)
+    await db.login_events.create_index([("user_id", 1), ("at", -1)])
+    await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
 
     # seed manager
     admin_email = os.environ["ADMIN_EMAIL"].lower()
@@ -435,7 +444,7 @@ async def startup():
             super_doc.update({"id": uid(), "password_hash": hash_password(super_pw),
                               "created_at": now_utc().isoformat()})
             await db.users.insert_one(super_doc)
-        elif not verify_password(super_pw, super_admin.get("password_hash", "")):
+        elif not super_admin.get("password_changed_at") and not verify_password(super_pw, super_admin.get("password_hash", "")):
             await db.users.update_one({"id": super_admin["id"]},
                                       {"$set": {"password_hash": hash_password(super_pw),
                                                 "role": "super_admin", "studio_id": None}})
@@ -531,13 +540,28 @@ async def register(data: RegisterIn, response: Response):
     set_auth_cookies(response, access, refresh)
     return serialize(user)
 
+STAFF_ROLES = ("manager", "professional", "super_admin")
+
+def client_ip(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for", "")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else ""
+
+async def record_login_event(request: Request, user: dict, success: bool):
+    await db.login_events.insert_one({
+        "id": uid(), "user_id": user["id"], "email": user.get("email"), "role": user.get("role"),
+        "ip": client_ip(request), "user_agent": request.headers.get("user-agent", "")[:300],
+        "success": success, "at": now_utc().isoformat(),
+    })
+
 @api.post("/auth/login")
-async def login(data: LoginIn, response: Response):
+async def login(data: LoginIn, request: Request, response: Response):
     ident = data.identifier.strip()
     studio = await db.studios.find_one({"slug": data.studio_slug, "active": {"$ne": False}}) if data.studio_slug else None
     studio_id = studio["id"] if studio else None
     if "@" in ident:
-        query = {"email": ident.lower(), "role": {"$in": ["manager", "professional", "super_admin"]}}
+        query = {"email": ident.lower(), "role": {"$in": list(STAFF_ROLES)}}
         if studio_id:
             query["studio_id"] = studio_id
         matches = await db.users.find(query, {"_id": 0}).to_list(10)
@@ -551,8 +575,12 @@ async def login(data: LoginIn, response: Response):
             query["studio_id"] = studio_id
         user = await db.users.find_one(query) if digits else None
     if not user or not verify_password(data.password, user["password_hash"]):
+        if user and user.get("role") in STAFF_ROLES:
+            await record_login_event(request, user, False)
         raise HTTPException(401, "Credenciais inválidas")
     await ensure_studio_access(user)
+    if user.get("role") in STAFF_ROLES:
+        await record_login_event(request, user, True)
     access = make_access(user["id"], user["role"])
     refresh = make_refresh(user["id"])
     set_auth_cookies(response, access, refresh)
@@ -567,7 +595,44 @@ async def logout(response: Response, user: dict = Depends(get_current_user)):
 async def change_password(data: ChangePasswordIn, user: dict = Depends(get_current_user)):
     if not verify_password(data.current_password, user.get("password_hash", "")):
         raise HTTPException(400, "Senha atual inválida")
-    await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_password(data.new_password)}})
+    await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_password(data.new_password),
+                                                            "password_changed_at": now_utc().isoformat()}})
+    return {"ok": True}
+
+@api.get("/auth/login-history")
+async def login_history(limit: int = 20, user: dict = Depends(require_role(*STAFF_ROLES))):
+    docs = await db.login_events.find({"user_id": user["id"]}, {"_id": 0}).sort("at", -1).to_list(min(max(limit, 1), 100))
+    return docs
+
+def frontend_base(request: Request) -> str:
+    origin = request.headers.get("origin") or ""
+    if origin:
+        return origin.rstrip("/")
+    first = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
+    return first[0].rstrip("/") if first else ""
+
+@api.post("/auth/forgot-password")
+async def forgot_password(data: ForgotPasswordIn, request: Request):
+    user = await db.users.find_one({"email": data.email.lower(), "role": {"$in": list(STAFF_ROLES)}}, {"_id": 0})
+    if user:
+        token = secrets.token_urlsafe(32)
+        await db.password_reset_tokens.insert_one({
+            "id": uid(), "token": token, "user_id": user["id"], "used": False,
+            "created_at": now_utc(), "expires_at": now_utc() + timedelta(hours=1),
+        })
+        link = f"{frontend_base(request)}/redefinir-senha?token={token}"
+        # MOCK: envio de e-mail ainda não configurado — link registrado no log do servidor
+        logger.info("PASSWORD RESET LINK for %s: %s", user["email"], link)
+    return {"ok": True, "message": "Se o e-mail estiver cadastrado, enviaremos um link de recuperação."}
+
+@api.post("/auth/reset-password")
+async def reset_password(data: ResetPasswordIn):
+    doc = await db.password_reset_tokens.find_one({"token": data.token, "used": False})
+    if not doc or doc["expires_at"].replace(tzinfo=timezone.utc) < now_utc():
+        raise HTTPException(400, "Link inválido ou expirado")
+    await db.users.update_one({"id": doc["user_id"]}, {"$set": {"password_hash": hash_password(data.new_password),
+                                                                "password_changed_at": now_utc().isoformat()}})
+    await db.password_reset_tokens.update_one({"id": doc["id"]}, {"$set": {"used": True}})
     return {"ok": True}
 
 @api.get("/auth/me")

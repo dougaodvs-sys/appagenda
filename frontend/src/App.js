@@ -21,6 +21,9 @@ import Gallery from "@/pages/Gallery";
 import PlatformStudios from "@/pages/PlatformStudios";
 import PublicStudio from "@/pages/PublicStudio";
 import Reports from "@/pages/Reports";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
+import MyAccount from "@/pages/MyAccount";
 import "@/App.css";
 
 function Guard({ children, roles }) {
@@ -49,9 +52,12 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/esqueci-senha" element={<ForgotPassword />} />
+            <Route path="/redefinir-senha" element={<ResetPassword />} />
             <Route path="/studio/:slug" element={<PublicStudio />} />
             <Route path="/" element={<RootRedirect />} />
             <Route element={<Guard><Layout /></Guard>}>
+              <Route path="/minha-conta" element={<Guard roles={["super_admin","manager","professional"]}><MyAccount /></Guard>} />
               <Route path="/dashboard" element={<Guard roles={["manager"]}><ManagerDashboard /></Guard>} />
               <Route path="/relatorios" element={<Guard roles={["manager","professional"]}><Reports /></Guard>} />
               <Route path="/plataforma/studios" element={<Guard roles={["super_admin"]}><PlatformStudios /></Guard>} />

@@ -13,7 +13,7 @@ export default function Login() {
   const [params] = useSearchParams();
   const studioSlug = params.get("studio") || "";
   const nextPath = params.get("next") || "";
-  const [mode, setMode] = useState("client");
+  const [mode, setMode] = useState(params.get("staff") === "1" ? "staff" : "client");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,6 +26,7 @@ export default function Login() {
       const u = await login(mode === "client" ? phone : email, password, studioSlug);
       toast.success(`Bem-vinda, ${u.name}`);
       if (u.role === "manager") nav("/dashboard");
+      else if (u.role === "super_admin") nav("/plataforma/studios");
       else if (u.role === "professional") nav("/agenda");
       else nav(nextPath.startsWith("/") ? nextPath : "/inicio");
     } catch (err) {
@@ -66,6 +67,7 @@ export default function Login() {
             <TabsContent value="staff" className="mt-4">
               <Label htmlFor="email">E-mail</Label>
               <Input data-testid="login-email" id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required={mode === "staff"} />
+              <p className="text-xs text-muted-foreground mt-2">Gerentes, profissionais e administradores entram por aqui.</p>
             </TabsContent>
           </Tabs>
           <div>
@@ -78,6 +80,11 @@ export default function Login() {
           {mode === "client" && (
             <div className="text-sm text-muted-foreground text-center">
               Ainda não tem conta? <Link data-testid="go-register" to={studioSlug ? `/register?studio=${encodeURIComponent(studioSlug)}` : "/register"} className="text-primary hover:underline">Criar conta</Link>
+            </div>
+          )}
+          {mode === "staff" && (
+            <div className="text-sm text-muted-foreground text-center">
+              <Link data-testid="go-forgot-password" to="/esqueci-senha" className="text-primary hover:underline">Esqueci minha senha</Link>
             </div>
           )}
         </form>
