@@ -4,8 +4,9 @@
 - **Email**: dvssystem@hotmail.com
 - **Password**: Douglas0101
 - **Role**: super_admin
-- **Login tab**: Equipe
-- Acessa `/plataforma/studios`
+- **Login tab**: Equipe (atalho: `/login?staff=1`)
+- Acessa `/plataforma/studios` e `/minha-conta` (alterar senha + registro de acessos)
+- Recuperar senha: `/esqueci-senha` → link aparece no log do backend (`grep 'PASSWORD RESET LINK' /var/log/supervisor/backend.*.log`)
 
 ## Manager (Gerente do Studio padrão)
 - **Email**: gerente@studio.com
