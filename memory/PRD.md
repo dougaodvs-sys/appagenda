@@ -32,8 +32,15 @@ Stack: FastAPI + MongoDB + React (CRA/craco) + Tailwind + shadcn/ui.
 - Seed do super admin não sobrescreve mais a senha quando `password_changed_at` existe (senha alterada no app é mantida em restart).
 - Testado: test_reports/iteration_1.json (backend 7/7, frontend E2E ok).
 
+## E-mail real + Acessos master + Primeiro Studio (2026-06)
+- Recuperação de senha agora envia e-mail real via Emergent managed email (Resend proxy) — `backend/emailer.py` (gate de segurança G2/G3, template server-side). `.env`: `EMERGENT_EMAIL_KEY`, `EMAIL_FROM_NAME=Studio Aurea`.
+- Página `/plataforma/admins` ("Acessos master"): criar/listar/remover super admins. Endpoints `GET/POST/DELETE /api/platform/admins` (não permite remover a si mesmo). Mostra último acesso via `login_events`.
+- Primeiro Studio real criado: **Meu Studio** (slug `meu-studio`, gerente `gerente@meustudio.com`). Studio padrão `Studio Aurea` (default-studio) continua existindo.
+- Existe um super admin legado `admin@plataforma.com` (seed antigo) — pode ser removido pela tela Acessos master.
+- Testado: test_reports/iteration_2.json (backend 5/5, frontend E2E ok).
+
 ## Next backlog
-- P1: Conectar provedor de e-mail real (Resend/SendGrid) no forgot-password.
-- P1: Criar o primeiro Studio real via /plataforma/studios.
-- P2: Testar fluxos completos (agenda, reservas, cupons, uploads).
+- P1: Editar nome/e-mail de um super admin e redefinir senha pelo super admin.
+- P1: Testar fluxos completos do studio (agenda, reservas, cupons, uploads). Storage init retorna 400 — verificar upload de galeria.
 - P2: Proteção contra força bruta no login (bloqueio após 5 falhas).
+- P2: Notificar admin em acesso de IP/navegador novo.
