@@ -9,7 +9,6 @@ export const BACKEND_URL = PAGE_ORIGIN && PAGE_ORIGIN !== ENV_URL ? PAGE_ORIGIN 
 export const api = axios.create({
   baseURL: `${BACKEND_URL}/api`,
   withCredentials: true,
-  headers: { "Content-Type": "application/json" },
 });
 
 export function fmtErr(detail) {
