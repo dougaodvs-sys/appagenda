@@ -24,6 +24,7 @@ import Reports from "@/pages/Reports";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import MyAccount from "@/pages/MyAccount";
+import PlatformAdmins from "@/pages/PlatformAdmins";
 import "@/App.css";
 
 function Guard({ children, roles }) {
@@ -61,6 +62,7 @@ export default function App() {
               <Route path="/dashboard" element={<Guard roles={["manager"]}><ManagerDashboard /></Guard>} />
               <Route path="/relatorios" element={<Guard roles={["manager","professional"]}><Reports /></Guard>} />
               <Route path="/plataforma/studios" element={<Guard roles={["super_admin"]}><PlatformStudios /></Guard>} />
+              <Route path="/plataforma/admins" element={<Guard roles={["super_admin"]}><PlatformAdmins /></Guard>} />
               <Route path="/agenda" element={<Guard roles={["manager","professional"]}><Agenda /></Guard>} />
               <Route path="/agendamentos" element={<Appointments />} />
               <Route path="/profissionais" element={<Guard roles={["manager"]}><Professionals /></Guard>} />

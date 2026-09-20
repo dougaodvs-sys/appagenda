@@ -22,6 +22,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr
+from emailer import send_email, password_reset_html, EMAIL_FROM_NAME
 
 # =========================
 # Config
@@ -368,6 +369,11 @@ class ResetPasswordIn(BaseModel):
     token: str
     new_password: str = Field(min_length=8)
 
+class PlatformAdminIn(BaseModel):
+    name: str = Field(min_length=2)
+    email: EmailStr
+    password: str = Field(min_length=8)
+
 # =========================
 # Startup
 # =========================
@@ -621,8 +627,13 @@ async def forgot_password(data: ForgotPasswordIn, request: Request):
             "created_at": now_utc(), "expires_at": now_utc() + timedelta(hours=1),
         })
         link = f"{frontend_base(request)}/redefinir-senha?token={token}"
-        # MOCK: envio de e-mail ainda não configurado — link registrado no log do servidor
-        logger.info("PASSWORD RESET LINK for %s: %s", user["email"], link)
+        try:
+            await send_email(to=user["email"], subject=f"{EMAIL_FROM_NAME} · Redefinir sua senha",
+                             html=password_reset_html(user.get("name") or "", link))
+            logger.info("Password reset e-mail sent to %s", user["email"])
+        except Exception as e:
+            logger.error("Password reset e-mail failed for %s: %s", user["email"], e)
+            raise HTTPException(502, "Não foi possível enviar o e-mail. Tente novamente em instantes.")
     return {"ok": True, "message": "Se o e-mail estiver cadastrado, enviaremos um link de recuperação."}
 
 @api.post("/auth/reset-password")
@@ -737,6 +748,44 @@ async def create_studio(data: StudioIn, user: dict = Depends(require_role("super
             "studio_id": studio_id, "created_at": now_utc().isoformat(),
         })
     return await studio_response(doc)
+
+# =========================
+# Platform admins (super_admin)
+# =========================
+def _admin_view(u: dict) -> dict:
+    return {"id": u["id"], "name": u.get("name"), "email": u.get("email"),
+            "created_at": u.get("created_at"), "last_login_at": u.get("last_login_at")}
+
+@api.get("/platform/admins")
+async def list_platform_admins(user: dict = Depends(require_role("super_admin"))):
+    admins = await db.users.find({"role": "super_admin"}, {"_id": 0}).sort("created_at", 1).to_list(100)
+    out = []
+    for a in admins:
+        last = await db.login_events.find_one({"user_id": a["id"], "success": True}, {"_id": 0, "at": 1}, sort=[("at", -1)])
+        a["last_login_at"] = last["at"] if last else None
+        out.append(_admin_view(a))
+    return out
+
+@api.post("/platform/admins")
+async def create_platform_admin(data: PlatformAdminIn, user: dict = Depends(require_role("super_admin"))):
+    email = str(data.email).lower()
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(400, "E-mail já está em uso")
+    doc = {"id": uid(), "name": data.name.strip(), "email": email, "role": "super_admin", "studio_id": None,
+           "phone": "", "password_hash": hash_password(data.password), "password_changed_at": now_utc().isoformat(),
+           "created_by": user["id"], "created_at": now_utc().isoformat()}
+    await db.users.insert_one(doc)
+    return _admin_view(doc)
+
+@api.delete("/platform/admins/{admin_id}")
+async def delete_platform_admin(admin_id: str, user: dict = Depends(require_role("super_admin"))):
+    if admin_id == user["id"]:
+        raise HTTPException(400, "Você não pode remover o seu próprio acesso")
+    target = await db.users.find_one({"id": admin_id, "role": "super_admin"})
+    if not target:
+        raise HTTPException(404, "Administrador não encontrado")
+    await db.users.delete_one({"id": admin_id})
+    return {"ok": True}
 
 @api.put("/studios/{studio_id}")
 async def update_studio(studio_id: str, data: StudioUpdate,
