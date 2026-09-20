@@ -1,0 +1,19 @@
+{
+  "summary": "Focused regression on the CORS/login bug fix. Verified CORS preflight now returns 200 through public URL for /api/auth/login, /api/auth/forgot-password and /api/auth/change-password (previously 400). Verified evil.com preflight against localhost is still rejected (400). Frontend browser test: /login?staff=1 with wrong password shows 'Credenciais inválidas' toast, correct super admin login shows 'Bem-vinda, Super Admin' and redirects to /plataforma/studios. /minha-conta login history shows the new browser entry at the top. No CORS errors, no failed OPTIONS in browser console/network.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_auth_flows.py", "/app/backend/tests/test_platform_admins.py"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "CORS regex is well-scoped to https:// only and to emergentagent.com/emergentcf.cloud/emergent.host with allow_credentials=True — safe; localhost evil.com preflight correctly returns 400.",
+    "server.py is ~1994 lines — recommend splitting into routers (auth, platform, studios, etc.) for maintainability."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Super admin dvssystem@hotmail.com / Douglas0101 (unchanged)",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "CORS fix (allow_origin_regex for emergentagent.com/emergentcf.cloud/emergent.host) is validated end-to-end. Note: ingress rewrites Origin to https://<id>.cluster-2.preview.emergentcf.cloud — that is the host the ACAO header echoes.",
+  "rca of the issue": "Cloud ingress rewrites the browser Origin header to https://<id>.cluster-2.preview.emergentcf.cloud, which was not in CORS_ORIGINS env list. FastAPI CORSMiddleware rejected the preflight (400 'Disallowed CORS origin'), causing the browser to show generic 'Falha no login' network error. Fix: added allow_origin_regex covering *.emergentagent.com|emergentcf.cloud|emergent.host in server.py:1989 while keeping allow_credentials=True. Verified via curl (public URL preflight = 200 with ACAO header) and Playwright login flow (no CORS errors, successful login toast, redirect, history entry recorded)."
+}

@@ -39,6 +39,11 @@ Stack: FastAPI + MongoDB + React (CRA/craco) + Tailwind + shadcn/ui.
 - Existe um super admin legado `admin@plataforma.com` (seed antigo) — pode ser removido pela tela Acessos master.
 - Testado: test_reports/iteration_2.json (backend 5/5, frontend E2E ok).
 
+## Bug fix: "Falha no login" (CORS) — 2026-06
+- Causa raiz: o ingress da plataforma reescreve o header `Origin` para `https://<id>.cluster-N.preview.emergentcf.cloud`; o CORSMiddleware só aceitava `CORS_ORIGINS` exatos → preflight `OPTIONS /api/auth/login` 400 "Disallowed CORS origin" → axios erro de rede → toast "Falha no login".
+- Fix: `allow_origin_regex` para `*.emergentagent.com | *.emergentcf.cloud | *.emergent.host` além de `CORS_ORIGINS` (server.py, final). Testado: test_reports/iteration_3.json.
+- Lição: não confiar em whitelist exata de Origin neste ambiente; sempre testar preflight pela URL pública, não só localhost.
+
 ## Next backlog
 - P1: Editar nome/e-mail de um super admin e redefinir senha pelo super admin.
 - P1: Testar fluxos completos do studio (agenda, reservas, cupons, uploads). Storage init retorna 400 — verificar upload de galeria.
