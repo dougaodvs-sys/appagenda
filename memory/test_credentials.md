@@ -2,10 +2,10 @@
 
 ## Super Admin (Master da Plataforma)
 - **Email**: dvssystem@hotmail.com
-- **Password**: Douglas01@
+- **Password**: Douglas0101
 - **Role**: super_admin
 - **Login tab**: Equipe
-- Acessa `/plataforma/studios` para gerenciar todos os studios
+- Acessa `/plataforma/studios`
 
 ## Manager (Gerente do Studio padrão)
 - **Email**: gerente@studio.com
