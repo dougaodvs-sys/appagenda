@@ -1,0 +1,22 @@
+{
+  "summary": "Validated logo upload bug fix on /configuracoes. Backend: POST /api/upload multipart returns 200 with {path,url}; missing file returns 422; PUT /api/settings JSON still 200. Frontend (real browser): logged in as manager via /login?staff=1, uploaded a PNG through the hidden file input (data-testid s-logo-input) - success toast 'Imagem enviada' shown, preview (s-logo-preview) renders with src /api/files/... (HTTP 200), persists after page reload. No 'Field required' toast. Fix confirmed: removing default Content-Type from axios instance allows FormData to be sent as multipart/form-data.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_upload.py",
+    "/app/test_reports/pytest/upload_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "api.js correctly omits default Content-Type so axios auto-sets multipart boundary for FormData; JSON requests still work because axios sets application/json automatically when body is a plain object.",
+    "Consider adding client-side file size/type limits in ImageUpload to give faster UX feedback before hitting backend."
+  ],
+  "updated_files": ["/app/backend/tests/test_upload.py"],
+  "success_rate": {"backend": "100% (3/3)", "frontend": "100% (login + upload + preview + persistence)"},
+  "test_credentials": "Manager: gerente@meustudio.com / Studio@2026 (login field is 'identifier', not 'email')",
+  "seed_data_creation": "One test PNG uploaded to studio-aurea/logo/ folder as manager's studio logo (persisted in settings).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Auth login endpoint expects {identifier, password} not {email, password}. Upload falls back to local disk (/app/backend/uploads) since object storage init returns 400 in this env - this is expected and works. Frontend tests should use REACT_APP_BACKEND_URL from /app/frontend/.env; backend tests need env var exported explicitly when running pytest.",
+  "rca of the issue": "Root cause: axios instance in /app/frontend/src/lib/api.js declared default header Content-Type: application/json. In axios 1.x, when a Content-Type is preset to application/json, FormData is serialized as JSON and the multipart boundary is never generated, so FastAPI's UploadFile parser sees no 'file' field -> 422 'Field required'. Fix: remove the default Content-Type header from axios.create; axios will now auto-detect and set application/json for plain-object bodies and multipart/form-data (with boundary) for FormData. Verified by real-browser upload + backend pytest."
+}
