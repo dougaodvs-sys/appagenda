@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api, mediaUrl } from "@/lib/api";
+import { api, mediaUrl, BACKEND_URL } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import InstallAppButton from "@/components/InstallAppButton";
 
@@ -18,7 +18,7 @@ export default function PublicStudio() {
         manifestLink.rel = "manifest";
         document.head.appendChild(manifestLink);
       }
-      manifestLink.href = `${process.env.REACT_APP_BACKEND_URL}/api/public/studios/${encodeURIComponent(config.slug)}/manifest`;
+      manifestLink.href = `${BACKEND_URL}/api/public/studios/${encodeURIComponent(config.slug)}/manifest`;
     }).catch(() => setError(true));
   }, [slug]);
   if (error) return <div className="min-h-screen flex items-center justify-center">Studio não encontrado.</div>;

@@ -1,6 +1,10 @@
 import axios from "axios";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+const ENV_URL = process.env.REACT_APP_BACKEND_URL || "";
+// The platform proxy rewrites the Origin header, so cross-origin calls from alias hosts fail CORS.
+// When served over https from a different host than ENV_URL, call the API on the same origin.
+const PAGE_ORIGIN = typeof window !== "undefined" && window.location.protocol === "https:" ? window.location.origin : "";
+export const BACKEND_URL = PAGE_ORIGIN && PAGE_ORIGIN !== ENV_URL ? PAGE_ORIGIN : ENV_URL;
 
 export const api = axios.create({
   baseURL: `${BACKEND_URL}/api`,
