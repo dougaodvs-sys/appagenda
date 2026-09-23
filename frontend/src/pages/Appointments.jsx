@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, Copy } from "lucide-react";
-import { QuickBooking } from "@/components/QuickBooking";
+import { QuickBooking, QuickBadge } from "@/components/QuickBooking";
 import { toast } from "sonner";
 
 function InviteDialog({ invite, onClose }) {
@@ -97,7 +97,7 @@ export default function Appointments() {
               <div className="flex justify-between flex-wrap gap-4">
                 <div>
                   <div className="text-xs uppercase tracking-widest text-muted-foreground">Cliente</div>
-                  <div className="font-display text-2xl">{a.client_name}</div>
+                  <div className="font-display text-2xl flex items-center gap-2 flex-wrap">{a.client_name}{a.quick && <QuickBadge />}</div>
                 </div>
                 <span className="self-start text-xs px-3 py-1 rounded-full" style={{ background: `${meta.color}22`, color: meta.color }}>{meta.label}</span>
               </div>

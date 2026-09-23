@@ -1088,10 +1088,13 @@ async def delete_professional(pid: str, user: dict = Depends(require_role("manag
 # Clients
 # =========================
 @api.get("/clients")
-async def list_clients(user: dict = Depends(get_current_user)):
+async def list_clients(scope: Optional[str] = None, user: dict = Depends(get_current_user)):
     if user["role"] == "client":
         raise HTTPException(403, "Sem permissão")
     q = tenant_query(user, {"role": "client"})
+    if user["role"] == "professional" and scope == "all":
+        docs = await db.users.find(q, {"_id": 0, "id": 1, "name": 1, "phone": 1}).sort("name", 1).to_list(2000)
+        return docs
     if user["role"] == "professional":
         # only clients this professional attended
         appts = await db.appointments.find(
@@ -1240,7 +1243,8 @@ async def _slot_ok(professional_id: str, start: datetime, service: dict,
                    ignore_appt_id: Optional[str] = None,
                    client_id: Optional[str] = None,
                    extra_client_intervals: Optional[list] = None,
-                   user: Optional[dict] = None) -> tuple[bool, str]:
+                   user: Optional[dict] = None,
+                   skip_hours: bool = False) -> tuple[bool, str]:
     """Check availability: working hours, blocks, other appointments (pro + client)."""
     duration = timedelta(minutes=service["duration_min"])
     cleanup = timedelta(minutes=service.get("cleanup_min", 0))
@@ -1256,17 +1260,20 @@ async def _slot_ok(professional_id: str, start: datetime, service: dict,
         # fallback studio hours
         settings = await db.settings.find_one(tenant_query(user, {"key": "studio"}) if user else {"key": "studio"})
         wh = (settings.get("opening_hours") or {}).get(DOW[start.weekday()]) if settings else None
-    if not wh or wh.get("closed"):
+    if skip_hours:
+        pass
+    elif not wh or wh.get("closed"):
         return False, "Fora do horário de funcionamento"
-    try:
-        oh, om = map(int, wh["open"].split(":"))
-        ch, cm = map(int, wh["close"].split(":"))
-    except Exception:
-        return False, "Horário de funcionamento inválido"
-    day_open = start.replace(hour=oh, minute=om, second=0, microsecond=0)
-    day_close = start.replace(hour=ch, minute=cm, second=0, microsecond=0)
-    if start < day_open or end > day_close:
-        return False, "Fora do horário de trabalho"
+    else:
+        try:
+            oh, om = map(int, wh["open"].split(":"))
+            ch, cm = map(int, wh["close"].split(":"))
+        except Exception:
+            return False, "Horário de funcionamento inválido"
+        day_open = start.replace(hour=oh, minute=om, second=0, microsecond=0)
+        day_close = start.replace(hour=ch, minute=cm, second=0, microsecond=0)
+        if start < day_open or end > day_close:
+            return False, "Fora do horário de trabalho"
 
     # blocks
     blocks = await _get_blocks_for(professional_id, user)
@@ -1512,8 +1519,10 @@ async def _build_summary(appt: dict) -> dict:
 async def create_appointment(data: BookingIn, user: dict = Depends(get_current_user)):
     if not data.items:
         raise HTTPException(400, "Nenhum procedimento informado")
-    if data.quick and user.get("role") != "manager":
-        raise HTTPException(403, "Encaixe rápido disponível apenas para o gerente")
+    if data.quick and user.get("role") not in ("manager", "professional"):
+        raise HTTPException(403, "Encaixe rápido disponível apenas para a equipe")
+    if user.get("role") == "professional" and any(it.professional_id != user["id"] for it in data.items):
+        raise HTTPException(403, "Profissional só pode agendar na própria agenda")
 
     # determine client
     client_id = None
@@ -1557,7 +1566,8 @@ async def create_appointment(data: BookingIn, user: dict = Depends(get_current_u
             ok, msg = await _slot_ok(it.professional_id, start, svc,
                                      client_id=client_id,
                                      user=user,
-                                     extra_client_intervals=intervals)
+                                     extra_client_intervals=intervals,
+                                     skip_hours=bool(is_staff and data.quick))
             if not ok:
                 raise HTTPException(409, msg)
         intervals.append((start, end))
@@ -1571,7 +1581,7 @@ async def create_appointment(data: BookingIn, user: dict = Depends(get_current_u
         )
         discount = cval["discount"]
 
-    initial_status = "confirmed" if (data.quick and user["role"] == "manager") else "waiting"
+    initial_status = "confirmed" if (data.quick and user["role"] in ("manager", "professional")) else "waiting"
     appt = {
         "id": uid(),
         "client_id": client_id,

@@ -47,11 +47,11 @@ export const DOW = [
 ];
 
 export const STATUS_META = {
-  waiting: { label: "Aguardando", tone: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
-  signal_pending: { label: "Sinal pendente", tone: "bg-orange-500/15 text-orange-400 border-orange-500/30" },
-  signal_paid: { label: "Sinal pago", tone: "bg-sky-500/15 text-sky-400 border-sky-500/30" },
-  confirmed: { label: "Confirmado", tone: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-  completed: { label: "Concluído", tone: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-  refused: { label: "Recusado", tone: "bg-rose-500/15 text-rose-400 border-rose-500/30" },
-  cancelled: { label: "Cancelado", tone: "bg-rose-500/15 text-rose-400 border-rose-500/30" },
+  waiting: { label: "Aguardando", color: "#f59e0b", tone: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+  signal_pending: { label: "Sinal pendente", color: "#f97316", tone: "bg-orange-500/15 text-orange-400 border-orange-500/30" },
+  signal_paid: { label: "Sinal pago", color: "#38bdf8", tone: "bg-sky-500/15 text-sky-400 border-sky-500/30" },
+  confirmed: { label: "Confirmado", color: "#34d399", tone: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+  completed: { label: "Concluído", color: "#10b981", tone: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+  refused: { label: "Recusado", color: "#fb7185", tone: "bg-rose-500/15 text-rose-400 border-rose-500/30" },
+  cancelled: { label: "Cancelado", color: "#f43f5e", tone: "bg-rose-500/15 text-rose-400 border-rose-500/30" },
 };

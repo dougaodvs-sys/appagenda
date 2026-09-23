@@ -3,19 +3,18 @@ import { api, STATUS_META, brl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { QuickBooking } from "@/components/QuickBooking";
-import { useNavigate } from "react-router-dom";
+import { QuickBooking, QuickBadge } from "@/components/QuickBooking";
 
 export default function Agenda() {
   const { user } = useAuth();
-  const nav = useNavigate();
   const [appts, setAppts] = useState([]);
   const [pros, setPros] = useState([]);
   const [proFilter, setProFilter] = useState("all");
   const [day, setDay] = useState(() => new Date().toISOString().slice(0, 10));
 
+  const load = () => api.get("/appointments").then((r) => setAppts(r.data));
   useEffect(() => {
-    api.get("/appointments").then((r) => setAppts(r.data));
+    load();
     api.get("/professionals").then((r) => setPros(r.data));
   }, []);
 
@@ -41,7 +40,7 @@ export default function Agenda() {
           <h1 className="font-display text-4xl sm:text-5xl mt-2">Do dia</h1>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          {user.role === "manager" && <QuickBooking onCreated={() => nav("/agendamentos")} />}
+          <QuickBooking onCreated={(a) => { load(); const d = a?.items?.[0]?.start; if (d) setDay(new Date(d).toISOString().slice(0, 10)); }} />
           <input type="date" value={day} onChange={(e) => setDay(e.target.value)} data-testid="agenda-day"
                  className="bg-secondary border border-border rounded-md px-3 h-10 text-sm w-full sm:w-auto" />
           {user.role === "manager" && (
@@ -64,10 +63,10 @@ export default function Agenda() {
           const meta = STATUS_META[it.appt.status] || STATUS_META.waiting;
           const time = new Date(it.start).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
           return (
-            <Card key={it.id} className="p-4 sm:p-5 border-border flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6" data-testid={`agenda-item-${it.id}`}>
+            <Card key={it.id} className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 ${it.appt.quick ? "border-amber-500/40 border-l-4 border-l-amber-400" : "border-border"}`} data-testid={`agenda-item-${it.id}`}>
               <div className="font-display text-2xl sm:text-3xl sm:min-w-24">{time}</div>
               <div className="flex-1">
-                <div className="font-medium">{it.service_name} — {it.professional_name}</div>
+                <div className="font-medium flex items-center gap-2 flex-wrap">{it.service_name} — {it.professional_name}{it.appt.quick && <QuickBadge />}</div>
                 <div className="text-sm text-muted-foreground">Cliente: {it.appt.client_name} • {it.duration_min} min</div>
               </div>
               <div className="text-left sm:text-right">
