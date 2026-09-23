@@ -14,7 +14,13 @@
 - **Role**: manager · slug `meu-studio` · link público `/studio/meu-studio`
 - **Login tab**: Equipe
 
-## Manager (Gerente do Studio padrão)
+## Profissional (Meu Studio)
+- **Email**: ana@meustudio.com · **Password**: Pro@2026xx · Serviço: Design de Sobrancelha (Seg–Sex 09–18h)
+
+## Cliente (Meu Studio)
+- **Telefone**: 11988887777 · **Password**: Cliente@2026 · aba "Sou cliente" (link `/login?studio=meu-studio`)
+
+## Manager (Studio Aurea padrão) — senha do .env NÃO funciona mais (usuário alterou); redefinir via /plataforma/studios se necessário
 - **Email**: gerente@studio.com
 - **Password**: Studio@2026
 - **Role**: manager

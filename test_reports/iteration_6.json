@@ -1,0 +1,23 @@
+{
+  "summary": "Validated 'Encaixe rápido' (quick booking) for professional and manager. Backend: 5 passing, 1 skipped (only one active pro in Meu Studio, cannot test cross-pro 403 in this env). Frontend: professional flow (registered client + new client, both outside working hours - Sunday 22:30 UTC and weekday 07:00 UTC) both create confirmed quick appointments, agenda day auto-switches, amber 'Encaixe' badge (data-testid quick-badge) is rendered; qb-pro select is correctly hidden for professionals. Manager sees qb-pro select on /agenda and quick-badge chips on /agendamentos list. All GET /api/clients?scope=all as professional returns minimal {id,name,phone} shape. Non-quick booking outside hours returns 409 'Fora do horário de funcionamento'; client role POST quick=true is denied with 403.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_quick_booking.py",
+    "/app/test_reports/pytest/quick_booking.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "QuickBooking.jsx builds start from `new Date(day + 'T' + time + ':00').toISOString()` — this uses BROWSER LOCAL time then converts to UTC. This is intentional (user picks local time), but be aware: for test automation, the browser's TZ inside CI may differ from user TZ. In this preview environment the container tz appears to be UTC so `qb-time=22:30` was stored as 22:30Z; a real user in America/Sao_Paulo picking 22:30 would store 01:30Z next day. Working as designed but worth documenting.",
+    "server.py _slot_ok — when skip_hours=True the working-hours branch is bypassed but the professional 'active' check still runs; ok.",
+    "list_clients scope=all is professional-only; if a manager calls it, the scope param is silently ignored (falls through to the full listing). Not a bug but the behaviour could be documented."
+  ],
+  "updated_files": ["/app/backend/tests/test_quick_booking.py"],
+  "success_rate": {"backend": "100% (5/5, 1 skipped due to single pro)", "frontend": "100% (all professional + manager flows)"},
+  "test_credentials": "Professional: ana@meustudio.com / Pro@2026xx ; Manager: gerente@meustudio.com / Studio@2026 ; Client: 11988887777 / Cliente@2026 (identifier field, not email)",
+  "seed_data_creation": "Two future-dated quick appointments created for Ana Profissional on 2028-05-28 22:30Z (Carla Cliente) and 2028-06-20 07:00Z (Teste Avulsa). These are far in the future and prefixed conceptually as test data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Meu Studio has only one active professional (Ana), so the 'professional cannot quick book for another pro' test is skipped in this env; if a second pro is later seeded the test will auto-activate. Ana's working hours in DB are Mon-Fri 09:00-18:00 with Sun closed (studio fallback). qb-manual switch must be turned ON before qb-time appears. Radix Select options: click trigger, wait ~400ms, then click by role='option' with has_text filter (multiple 'Design de Sobrancelha' entries may exist; use .first). Manager logs into /dashboard by default, needs explicit navigation to /agenda.",
+  "rca of the issue": "N/A - feature working as designed."
+}

@@ -45,6 +45,12 @@ Stack: FastAPI + MongoDB + React (CRA/craco) + Tailwind + shadcn/ui.
 - Lição: não confiar em whitelist exata de Origin neste ambiente; sempre testar preflight pela URL pública, não só localhost.
 - 2ª causa (print do usuário): ele acessa pelo alias `importa-projeto.preview.emergentagent.com` ≠ `REACT_APP_BACKEND_URL` → chamadas cross-origin; como o proxy reescreve o Origin, o `Access-Control-Allow-Origin` nunca bate com o origin real do navegador. Fix: `lib/api.js` usa `window.location.origin` como `BACKEND_URL` quando a página está em https num host diferente do `.env` (chamadas same-origin). Testado no alias e no host principal: test_reports/iteration_4.json.
 
+## Encaixe rápido (profissional) + fix upload logo — 2026-06
+- Bug logo: axios tinha header padrão `Content-Type: application/json` → axios 1.x converte FormData em JSON → 422 "Field required". Removido o header padrão em `lib/api.js`. (iteration_5)
+- Encaixe rápido agora disponível para **profissional** (só na própria agenda) e gerente. Backend: `quick` pula validação de horário de funcionamento (`_slot_ok(skip_hours=True)`), mantém checagem de conflito (a menos de `force`), status já `confirmed`. `GET /clients?scope=all` para profissional escolher qualquer cliente cadastrada (id/nome/telefone).
+- Frontend `QuickBooking.jsx`: abas "Cliente cadastrada" (busca + select) / "Sem cadastro"; profissional não escolhe profissional; "Digitar horário livremente". Badge âmbar "Encaixe" (`QuickBadge`) na Agenda (borda esquerda âmbar) e em Agendamentos. Agenda pula para o dia do encaixe. `STATUS_META` ganhou `color`. (iteration_6)
+- Dados de teste no Meu Studio: serviço "Design de Sobrancelha", profissional ana@meustudio.com, cliente 11988887777.
+
 ## Next backlog
 - P1: Editar nome/e-mail de um super admin e redefinir senha pelo super admin.
 - P1: Testar fluxos completos do studio (agenda, reservas, cupons, uploads). Storage init retorna 400 — verificar upload de galeria.
