@@ -247,7 +247,7 @@ class ProfessionalIn(BaseModel):
     name: str
     email: EmailStr
     password: Optional[str] = None
-    phone: Optional[str] = None
+    phone: str = Field(min_length=8)
     specialty: Optional[str] = ""
     photo_url: Optional[str] = ""
     service_ids: List[str] = []
@@ -1043,6 +1043,8 @@ async def create_professional(data: ProfessionalIn, user: dict = Depends(require
         raise HTTPException(400, "E-mail já em uso")
     if not data.password:
         raise HTTPException(400, "Senha inicial obrigatória")
+    if len(_norm_phone(data.phone)) < 8:
+        raise HTTPException(400, "Telefone/WhatsApp do profissional é obrigatório")
     pro_id = uid()
     user_doc = {
         "id": pro_id,
@@ -1070,8 +1072,12 @@ async def update_professional(pid: str, data: ProfessionalUpdate,
     if user["role"] not in ("manager",) and user["id"] != pid:
         raise HTTPException(403, "Sem permissão")
     updates = {k: v for k, v in data.model_dump(exclude_unset=True).items() if k != "password"}
+    if "phone" in updates and len(_norm_phone(updates["phone"])) < 8:
+        raise HTTPException(400, "Telefone/WhatsApp do profissional é obrigatório")
     if updates:
         await db.professionals.update_one(tenant_query(user, {"id": pid}), {"$set": updates})
+        if "phone" in updates:
+            await db.users.update_one(tenant_query(user, {"id": pid}), {"$set": {"phone": updates["phone"]}})
     if data.password:
         await db.users.update_one(tenant_query(user, {"id": pid}), {"$set": {"password_hash": hash_password(data.password)}})
     doc = await db.professionals.find_one(tenant_query(user, {"id": pid}), {"_id": 0})
@@ -1726,6 +1732,87 @@ async def appointment_invite(aid: str, origin: str = "", user: dict = Depends(ge
         phone = "55" + phone
     from urllib.parse import quote
     return {"text": text, "phone": phone, "wa_url": f"https://wa.me/{phone}?text={quote(text)}"}
+
+def _wa_phone(raw: Optional[str]) -> str:
+    phone = re.sub(r"\D", "", raw or "")
+    if phone and not phone.startswith("55") and len(phone) <= 11:
+        phone = "55" + phone
+    return phone
+
+def _wa_target(role: str, name: str, phone: Optional[str], text: str) -> dict:
+    p = _wa_phone(phone)
+    return {"role": role, "name": name, "phone": p, "text": text,
+            "wa_url": f"https://wa.me/{p}?text={quote(text)}" if p else ""}
+
+def _client_status_text(summary: dict, settings: dict, origin: str, studio_slug: str) -> str:
+    status = summary.get("status")
+    if status in ("confirmed", "completed"):
+        return _invite_text(summary, settings, origin, studio_slug)
+    first = (summary.get("client_name") or "").split(" ")[0]
+    studio = settings.get("name") or "Studio"
+    lines = [f"✨ *{studio}* ✨", "", f"Olá, {first}!"]
+    if status in ("refused", "cancelled"):
+        reason = summary.get("cancellation_reason")
+        lines.append("Infelizmente seu horário foi *cancelado* 😔" if status == "cancelled" else "Não conseguimos confirmar seu horário 😔")
+        if reason:
+            lines.append(f"Motivo: {reason}")
+    else:
+        lines.append("Recebemos sua solicitação de horário e ela está *aguardando confirmação* ⏳")
+    lines.append("")
+    for it in summary["items"]:
+        lines.append(f"💅 *{it['service_name']}* com {it['professional_name']}")
+        lines.append(f"   📅 {_fmt_br(it['start'])}")
+    if status in ("refused", "cancelled"):
+        lines += ["", "Quer escolher outro horário? É só responder aqui 💛"]
+    lines += ["", "Até breve! 🌸"]
+    return "\n".join(lines)
+
+def _pro_text(summary: dict, settings: dict, items: list, pro_name: str) -> str:
+    studio = settings.get("name") or "Studio"
+    first = pro_name.split(" ")[0] if pro_name else ""
+    kind = "Encaixe" if summary.get("quick") else "Novo agendamento"
+    status = summary.get("status")
+    head = {"confirmed": "confirmado ✅", "completed": "concluído ✅", "refused": "recusado ❌",
+            "cancelled": "cancelado ❌"}.get(status, "aguardando confirmação ⏳")
+    lines = [f"✨ *{studio}* ✨", "", f"Olá, {first}! {kind} na sua agenda — {head}", "",
+             f"👤 Cliente: *{summary.get('client_name') or '—'}*"]
+    if summary.get("client_phone"):
+        lines.append(f"📱 WhatsApp da cliente: {summary['client_phone']}")
+    lines.append("")
+    for it in items:
+        lines.append(f"💅 *{it['service_name']}* — {it.get('duration_min', 0)} min")
+        lines.append(f"   📅 {_fmt_br(it['start'])}")
+    if summary.get("notes"):
+        lines += ["", f"📝 {summary['notes']}"]
+    return "\n".join(lines)
+
+@api.get("/appointments/{aid}/whatsapp")
+async def appointment_whatsapp(aid: str, origin: str = "", user: dict = Depends(get_current_user)):
+    q = tenant_query(user, {"id": aid})
+    if user["role"] == "client":
+        q["client_id"] = user["id"]
+    appt = await db.appointments.find_one(q, {"_id": 0})
+    if not appt:
+        raise HTTPException(404, "Agendamento não encontrado")
+    settings = await db.settings.find_one({"key": "studio", "studio_id": appt.get("studio_id")}) or {}
+    studio = await db.studios.find_one({"id": appt.get("studio_id")}, {"_id": 0, "slug": 1})
+    summary = await _build_summary(appt)
+    targets = []
+    if user["role"] != "client":
+        targets.append(_wa_target("client", summary.get("client_name") or "Cliente", summary.get("client_phone"),
+                                  _client_status_text(summary, settings, origin.rstrip("/"), studio.get("slug", "") if studio else "")))
+    by_pro: dict = {}
+    for it in summary["items"]:
+        by_pro.setdefault(it["professional_id"], []).append(it)
+    for pid, items in by_pro.items():
+        if user["role"] == "professional" and pid == user["id"]:
+            continue
+        pro = await db.professionals.find_one({"id": pid, "studio_id": appt.get("studio_id")}, {"_id": 0, "name": 1, "phone": 1})
+        if not pro:
+            continue
+        targets.append(_wa_target("professional", pro.get("name") or "Profissional", pro.get("phone"),
+                                  _pro_text(summary, settings, items, pro.get("name") or "")))
+    return {"appointment_id": aid, "status": summary.get("status"), "quick": bool(summary.get("quick")), "targets": targets}
 
 # =========================
 # Referral program (Indica)

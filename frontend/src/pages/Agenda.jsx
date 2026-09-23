@@ -4,9 +4,11 @@ import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QuickBooking, QuickBadge } from "@/components/QuickBooking";
+import { WhatsAppNotifyDialog } from "@/components/WhatsAppNotify";
 
 export default function Agenda() {
   const { user } = useAuth();
+  const [notifyId, setNotifyId] = useState(null);
   const [appts, setAppts] = useState([]);
   const [pros, setPros] = useState([]);
   const [proFilter, setProFilter] = useState("all");
@@ -40,7 +42,7 @@ export default function Agenda() {
           <h1 className="font-display text-4xl sm:text-5xl mt-2">Do dia</h1>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <QuickBooking onCreated={(a) => { load(); const d = a?.items?.[0]?.start; if (d) setDay(new Date(d).toISOString().slice(0, 10)); }} />
+          <QuickBooking onCreated={(a) => { load(); const d = a?.items?.[0]?.start; if (d) setDay(new Date(d).toISOString().slice(0, 10)); setNotifyId(a?.id || null); }} />
           <input type="date" value={day} onChange={(e) => setDay(e.target.value)} data-testid="agenda-day"
                  className="bg-secondary border border-border rounded-md px-3 h-10 text-sm w-full sm:w-auto" />
           {user.role === "manager" && (
@@ -79,6 +81,7 @@ export default function Agenda() {
           );
         })}
       </div>
+      <WhatsAppNotifyDialog appointmentId={notifyId} title="Encaixe confirmado ⚡" description="Avise a cliente e o profissional pelos números cadastrados." onClose={() => setNotifyId(null)} />
     </div>
   );
 }

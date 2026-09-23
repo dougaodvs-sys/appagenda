@@ -5,52 +5,27 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageCircle, Copy } from "lucide-react";
+import { MessageCircle } from "lucide-react";
+import { WhatsAppNotifyDialog } from "@/components/WhatsAppNotify";
 import { QuickBooking, QuickBadge } from "@/components/QuickBooking";
 import { toast } from "sonner";
-
-function InviteDialog({ invite, onClose }) {
-  if (!invite) return null;
-  const copy = () => { navigator.clipboard.writeText(invite.text); toast.success("Convite copiado"); };
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent data-testid="invite-dialog">
-        <DialogHeader><DialogTitle>Agendamento confirmado ✨</DialogTitle></DialogHeader>
-        <p className="text-sm text-muted-foreground">Envie o convite para a cliente pelo WhatsApp. A notificação in-app já foi enviada.</p>
-        <pre data-testid="invite-text" className="whitespace-pre-wrap text-sm bg-secondary/40 border border-border rounded-md p-4 max-h-64 overflow-auto font-sans">{invite.text}</pre>
-        {!invite.phone && <p className="text-xs text-destructive">Cliente sem telefone cadastrado — o WhatsApp abrirá sem destinatário.</p>}
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={copy} data-testid="invite-copy"><Copy size={14} className="mr-2" />Copiar</Button>
-          <a data-testid="invite-wa" href={invite.wa_url} target="_blank" rel="noreferrer"
-             className="inline-flex items-center justify-center text-sm px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-            <MessageCircle size={14} className="mr-2" />Enviar convite via WhatsApp
-          </a>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 export default function Appointments() {
   const { user } = useAuth();
   const [list, setList] = useState([]);
-  const [settings, setSettings] = useState(null);
-  const [invite, setInvite] = useState(null);
+  const [notify, setNotify] = useState(null); // { id, title }
   const [cancellation, setCancellation] = useState(null);
   const [cancellationReason, setCancellationReason] = useState("");
 
   const load = () => api.get("/appointments").then((r) => setList(r.data));
-  useEffect(() => { load(); api.get("/settings").then((r) => setSettings(r.data)); }, []);
+  useEffect(() => { load(); }, []);
 
-  const openInvite = async (id) => {
-    try { const { data } = await api.get(`/appointments/${id}/invite`, { params: { origin: window.location.origin } }); setInvite(data); }
-    catch (e) { toast.error(fmtErr(e.response?.data?.detail) || "Erro"); }
-  };
+  const openNotify = (id, title) => setNotify({ id, title });
 
   const setStatus = async (id, status, reason = null) => {
     try {
       await api.post(`/appointments/${id}/status`, { status, ...(reason ? { cancellation_reason: reason } : {}) }); toast.success("Atualizado"); load();
-      if (status === "confirmed") openInvite(id);
+      if (["confirmed", "refused", "cancelled"].includes(status)) openNotify(id, status === "confirmed" ? "Agendamento confirmado ✨" : "Avisar a cliente");
     }
     catch (e) { toast.error(fmtErr(e.response?.data?.detail) || "Erro"); }
   };
@@ -70,23 +45,11 @@ export default function Appointments() {
     catch (e) { toast.error(fmtErr(e.response?.data?.detail) || "Erro"); }
   };
 
-  const buildWhatsapp = (a) => {
-    const lines = [
-      `*${settings?.name || "Studio"}* — Agendamento`,
-      `Cliente: ${a.client_name}`,
-      ...a.items.map((it) => `• ${it.service_name} com ${it.professional_name} — ${new Date(it.start).toLocaleString("pt-BR")}`),
-      `Total: ${brl(a.total)}${a.discount ? ` (cupom -${brl(a.discount)})` : ""}`,
-      `Sinal (${a.signal_percent}%): ${brl(a.signal_value)}`,
-      `Status: ${STATUS_META[a.status]?.label}`,
-    ];
-    return encodeURIComponent(lines.join("\n"));
-  };
-
   return (
     <div className="space-y-8">
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div><div className="text-xs tracking-[0.4em] text-primary uppercase">Reservas</div><h1 className="font-display text-4xl sm:text-5xl mt-2">Agendamentos</h1></div>
-        {user.role !== "client" && <QuickBooking onCreated={(a) => { load(); openInvite(a.id); }} />}
+        {user.role !== "client" && <QuickBooking onCreated={(a) => { load(); openNotify(a.id, "Encaixe confirmado ⚡"); }} />}
       </div>
       <div className="space-y-4">
         {list.length === 0 && <Card className="p-10 border-dashed text-center text-muted-foreground">Nenhum agendamento.</Card>}
@@ -134,15 +97,7 @@ export default function Appointments() {
                   {user.role === "client" && ["waiting","confirmed","signal_paid"].includes(a.status) && (
                     <Button size="sm" variant="ghost" onClick={() => requestCancellation(a)} className="text-destructive">Cancelar</Button>
                   )}
-                  {user.role !== "client" && a.status === "confirmed" && (
-                    <Button size="sm" variant="outline" onClick={() => openInvite(a.id)} data-testid={`invite-${a.id}`}><MessageCircle size={14} className="mr-1" />Convite</Button>
-                  )}
-                  <a
-                    data-testid={`wa-${a.id}`}
-                    href={`https://wa.me/${(a.client_phone || "").replace(/\D/g, "")}?text=${buildWhatsapp(a)}`}
-                    target="_blank" rel="noreferrer"
-                    className="text-sm px-3 py-1.5 rounded-md border border-border hover:border-primary hover:text-primary transition-colors"
-                  >WhatsApp</a>
+                  <Button size="sm" variant="outline" onClick={() => openNotify(a.id, "Avisar pelo WhatsApp")} data-testid={`wa-${a.id}`} className="border-[#25D366]/40 text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366]"><MessageCircle size={14} className="mr-1" />WhatsApp</Button>
                 </div>
               </div>
             </Card>
@@ -160,7 +115,7 @@ export default function Appointments() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <InviteDialog invite={invite} onClose={() => setInvite(null)} />
+      <WhatsAppNotifyDialog appointmentId={notify?.id} title={notify?.title} onClose={() => setNotify(null)} />
     </div>
   );
 }

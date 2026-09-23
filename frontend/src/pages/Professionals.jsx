@@ -36,6 +36,7 @@ export default function Professionals() {
   };
 
   const save = async () => {
+    if ((form.phone || "").replace(/\D/g, "").length < 8) { toast.error("Informe o telefone/WhatsApp do profissional"); return; }
     try {
       if (editing) {
         const payload = { ...form };
@@ -80,7 +81,7 @@ export default function Professionals() {
               <div><Label>Nome</Label><Input data-testid="pro-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div><Label>Especialidade</Label><Input value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} /></div>
               <div><Label>E-mail (login)</Label><Input data-testid="pro-email" type="email" value={form.email} disabled={!!editing} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-              <div><Label>Telefone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+              <div><Label>Telefone / WhatsApp *</Label><Input data-testid="pro-phone" required placeholder="(11) 99999-9999" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
               <div><Label>{editing ? "Nova senha (opcional)" : "Senha inicial"}</Label><Input data-testid="pro-password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></div>
               <div><Label>Foto (URL)</Label><Input value={form.photo_url} onChange={(e) => setForm({ ...form, photo_url: e.target.value })} /></div>
               <div><Label>% Sinal</Label><Input type="number" value={form.signal_percent} onChange={(e) => setForm({ ...form, signal_percent: parseInt(e.target.value || "0") })} /></div>

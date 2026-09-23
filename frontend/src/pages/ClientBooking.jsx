@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { WhatsAppNotifyDialog } from "@/components/WhatsAppNotify";
 
 // Booking cart: array of { service_id, professional_id, start (ISO), service, pro }
 
@@ -17,6 +18,7 @@ export default function ClientBooking() {
   const [pros, setPros] = useState([]);
   const [cart, setCart] = useState([]);
   const [step, setStep] = useState("build"); // build | review
+  const [createdId, setCreatedId] = useState(null);
   const [pick, setPick] = useState({ service_id: "", professional_id: "", day: new Date().toISOString().slice(0, 10) });
   const [slots, setSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -89,13 +91,27 @@ export default function ClientBooking() {
 
   const submit = async () => {
     try {
-      await api.post("/appointments", {
+      const { data } = await api.post("/appointments", {
         items: cart.map((c) => ({ professional_id: c.professional_id, service_id: c.service_id, start: c.start })),
         coupon_code: couponCode || null,
       });
-      toast.success("Solicitação enviada!"); nav("/agendamentos");
+      toast.success("Solicitação enviada!"); setCreatedId(data.id);
     } catch (e) { toast.error(fmtErr(e.response?.data?.detail) || "Erro ao reservar"); }
   };
+
+  if (createdId) {
+    return (
+      <div className="max-w-xl mx-auto space-y-6" data-testid="booking-success">
+        <div>
+          <div className="text-xs tracking-[0.4em] text-primary uppercase">Reserva</div>
+          <h1 className="font-display text-4xl mt-2">Solicitação enviada ✨</h1>
+          <p className="text-muted-foreground mt-2">Seu pedido está aguardando confirmação do Studio. Para agilizar, avise o profissional pelo WhatsApp com a mensagem pronta abaixo.</p>
+        </div>
+        <WhatsAppNotifyDialog appointmentId={createdId} title="Avisar o profissional ⚡" description="Mensagem pronta para o WhatsApp cadastrado do profissional." onClose={() => nav("/agendamentos")} />
+        <Button data-testid="booking-go-appointments" onClick={() => nav("/agendamentos")} className="rounded-full">Ver meus agendamentos</Button>
+      </div>
+    );
+  }
 
   if (step === "review") {
     return (
