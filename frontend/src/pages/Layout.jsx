@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Bell, LogOut, LayoutDashboard, Calendar, Users, Scissors, Ticket, Ban, Settings as SettingsIcon, User, Menu, Images, Building2, Copy, BarChart3, UserCog, ShieldCheck } from "lucide-react";
+import { Bell, LogOut, LayoutDashboard, Calendar, Users, Scissors, Ticket, Ban, Settings as SettingsIcon, User, Menu, Images, Building2, Copy, BarChart3, UserCog, ShieldCheck, BellRing } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -20,6 +20,7 @@ const NAV = {
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/agenda", label: "Agenda", icon: Calendar },
     { to: "/agendamentos", label: "Agendamentos", icon: Calendar },
+    { to: "/lembretes", label: "Lembretes", icon: BellRing },
     { to: "/profissionais", label: "Profissionais", icon: Users },
     { to: "/servicos", label: "Serviços", icon: Scissors },
     { to: "/clientes", label: "Clientes", icon: User },
@@ -31,6 +32,7 @@ const NAV = {
   professional: [
     { to: "/agenda", label: "Minha Agenda", icon: Calendar },
     { to: "/agendamentos", label: "Agendamentos", icon: Calendar },
+    { to: "/lembretes", label: "Lembretes", icon: BellRing },
     { to: "/meus-servicos", label: "Meus Serviços", icon: Scissors },
     { to: "/clientes", label: "Meus Clientes", icon: User },
     { to: "/cupons", label: "Cupons", icon: Ticket },

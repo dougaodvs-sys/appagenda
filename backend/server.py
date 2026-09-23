@@ -1630,6 +1630,85 @@ async def create_appointment(data: BookingIn, user: dict = Depends(get_current_u
 
     return await _build_summary(appt)
 
+class RescheduleIn(BaseModel):
+    item_id: str
+    start: datetime
+    force: bool = False
+
+@api.post("/appointments/{aid}/reschedule")
+async def reschedule_appointment(aid: str, data: RescheduleIn, user: dict = Depends(require_role("manager", "professional"))):
+    appt = await db.appointments.find_one(tenant_query(user, {"id": aid}), {"_id": 0})
+    if not appt:
+        raise HTTPException(404, "Agendamento não encontrado")
+    if appt.get("status") in ("cancelled", "refused", "completed"):
+        raise HTTPException(400, "Este agendamento não pode mais ser movido")
+    item = next((it for it in appt["items"] if it["id"] == data.item_id), None)
+    if not item:
+        raise HTTPException(404, "Procedimento não encontrado")
+    if user["role"] == "professional" and item["professional_id"] != user["id"]:
+        raise HTTPException(403, "Só é possível mover horários da própria agenda")
+    svc = await _service(item["service_id"], user)
+    if not svc:
+        raise HTTPException(400, "Serviço inválido")
+    start = data.start if data.start.tzinfo else data.start.replace(tzinfo=timezone.utc)
+    if not data.force:
+        ok, msg = await _slot_ok(item["professional_id"], start, svc, ignore_appt_id=aid,
+                                 client_id=appt.get("client_id"), user=user, skip_hours=bool(appt.get("quick")))
+        if not ok:
+            raise HTTPException(409, msg)
+    await db.appointments.update_one(
+        {"id": aid, "items.id": data.item_id},
+        {"$set": {"items.$.start": start.isoformat(), "rescheduled_at": now_utc().isoformat(),
+                  "rescheduled_by": user["id"], "forced": bool(appt.get("forced") or data.force)}})
+    updated = await db.appointments.find_one({"id": aid}, {"_id": 0})
+    if appt.get("client_id"):
+        await notify(appt["client_id"], "Horário alterado",
+                     f"{svc['name']} foi movido para {_fmt_br(start.isoformat())}.", aid)
+    return await _build_summary(updated)
+
+def _reminder_text(studio: str, client_name: str, it: dict, when_label: str) -> str:
+    first = (client_name or "").split(" ")[0]
+    hhmm = _dt(it["start"]).astimezone(BR_TZ).strftime("%H:%M")
+    return "\n".join([
+        f"✨ *{studio}* ✨", "",
+        f"Olá, {first}! Passando para lembrar do seu horário {when_label} 💛", "",
+        f"💅 *{it['service_name']}* com {it['professional_name']}",
+        f"   🕒 {hhmm} ({_dt(it['start']).astimezone(BR_TZ).strftime('%d/%m')})", "",
+        "Pode confirmar sua presença respondendo aqui? Se precisar remarcar, é só avisar 🌸",
+    ])
+
+@api.get("/appointments/reminders")
+async def appointment_reminders(day: Optional[str] = None, professional_id: Optional[str] = None,
+                                user: dict = Depends(require_role("manager", "professional"))):
+    today_br = now_utc().astimezone(BR_TZ).date()
+    target = date.fromisoformat(day) if day else today_br + timedelta(days=1)
+    day_start = datetime.combine(target, time.min, tzinfo=BR_TZ)
+    day_end = day_start + timedelta(days=1)
+    q = tenant_query(user, {"status": {"$in": ["confirmed", "waiting", "signal_paid", "signal_pending"]}})
+    pid = user["id"] if user["role"] == "professional" else professional_id
+    if pid:
+        q["items.professional_id"] = pid
+    settings = await db.settings.find_one(tenant_query(user, {"key": "studio"})) or {}
+    studio = settings.get("name") or "Studio"
+    when_label = "amanhã" if target == today_br + timedelta(days=1) else ("hoje" if target == today_br else f"no dia {target.strftime('%d/%m')}")
+    rows = []
+    async for appt in db.appointments.find(q, {"_id": 0}):
+        summary = await _build_summary(appt)
+        for it in summary["items"]:
+            st = _dt(it["start"])
+            if not (day_start <= st < day_end) or (pid and it["professional_id"] != pid):
+                continue
+            text = _reminder_text(studio, summary.get("client_name"), it, when_label)
+            phone = _wa_phone(summary.get("client_phone"))
+            rows.append({"appointment_id": appt["id"], "item_id": it["id"], "start": it["start"],
+                         "client_name": summary.get("client_name"), "client_phone": phone,
+                         "service_name": it["service_name"], "professional_id": it["professional_id"],
+                         "professional_name": it["professional_name"], "duration_min": it.get("duration_min", 0),
+                         "status": summary.get("status"), "quick": bool(summary.get("quick")), "text": text,
+                         "wa_url": f"https://wa.me/{phone}?text={quote(text)}" if phone else ""})
+    rows.sort(key=lambda r: r["start"])
+    return {"day": target.isoformat(), "label": when_label, "items": rows}
+
 @api.get("/appointments")
 async def list_appointments(user: dict = Depends(get_current_user)):
     q = tenant_query(user, {"status": {"$nin": ["completed", "cancelled", "refused"]}})

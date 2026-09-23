@@ -96,9 +96,9 @@ export function QuickBooking({ onCreated }) {
         <p className="text-xs text-muted-foreground -mt-2">Escolha a cliente, o serviço e o horário. O encaixe já entra como confirmado e pode ficar fora do horário normal de funcionamento.</p>
 
         <Tabs value={clientMode} onValueChange={(v) => { setClientMode(v); setForm({ ...form, client_id: "", client_name: "", client_phone: "" }); }}>
-          <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="registered" data-testid="qb-tab-registered">Cliente cadastrada</TabsTrigger>
-            <TabsTrigger value="new" data-testid="qb-tab-new">Sem cadastro</TabsTrigger>
+          <TabsList className="flex w-full">
+            <TabsTrigger value="registered" className="flex-1" data-testid="qb-tab-registered">Cliente cadastrada</TabsTrigger>
+            <TabsTrigger value="new" className="flex-1" data-testid="qb-tab-new">Sem cadastro</TabsTrigger>
           </TabsList>
         </Tabs>
 
