@@ -1,0 +1,32 @@
+{
+  "summary": "WhatsApp notifications (click-to-chat) end-to-end verified. Backend: 8 passed, 1 skipped (no waiting appt at time of test — since covered by frontend flow). Frontend: professional /agenda quick booking dialog OK (client-only target, correct href, service+confirmado in text); manager /agendamentos WhatsApp button opens both targets, no-phone appointments show wa-nophone-client + wa-send-disabled-client; manager confirm shows 'Agendamento confirmado ✨' and refuse shows 'Avisar a cliente' with 'Não conseguimos confirmar'; client booking flow creates waiting appointment and opens 'Avisar o profissional ⚡' with only professional target and closing navigates to /agendamentos; professional form rejects creation without phone via toast 'Informe o telefone/WhatsApp do profissional'. Phone normalization with 55 prefix verified in all wa_urls.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Professionals.jsx openEdit", "issue": "Editing an existing professional whose working_hours dict is missing some day keys (e.g. only mon..fri) triggers 'Cannot read properties of undefined (reading closed)' Runtime error at line 113/114 (Switch checked={!wh.closed}). Ana's DB working_hours lacks a saturday key, so opening 'Editar' on Ana crashes the app.", "selector": "[data-testid=edit-pro-<AnaId>]", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_whatsapp_notify.py",
+    "/app/test_reports/pytest/whatsapp.xml"
+  ],
+  "action_items": [
+    "Fix Professionals.jsx openEdit: merge each day of working_hours with a default {open:'09:00', close:'18:00', closed:false} so partial DB values don't crash the edit dialog. Suggested: `working_hours: DOW.reduce((acc,d)=>({...acc,[d.key]: {...emptyForm.working_hours[d.key], ...(p.working_hours?.[d.key]||{})}}),{})`.",
+    "Consider adding server-side idempotent seed for manager/pro/client passwords or a rate-limit on /api/auth/login; during testing this env had its manager password rotated by another agent, requiring direct DB reset."
+  ],
+  "critical_code_review_comments": [
+    "server.py _wa_phone normalizes only when len(phone)<=11 without existing 55 prefix; if a manager enters a phone starting with '0' (leading zero for area code) or 12+ digits without 55, it won't be normalized. Consider tightening the rule (e.g., always drop leading 0, always ensure 55 prefix for BR numbers).",
+    "appointment_whatsapp endpoint uses request query param `origin` for building the studio link but doesn't validate/normalize it. Low risk but worth sanitizing.",
+    "Professionals.jsx uses spread `...p` after `...emptyForm` — non-day sub-keys are covered, but partial working_hours dict is not merged deeply. Root cause of the HIGH bug above."
+  ],
+  "updated_files": ["/app/backend/tests/test_whatsapp_notify.py"],
+  "success_rate": {"backend": "100% (8/8, 1 skipped by design)", "frontend": "95% (1 real UI bug on Professionals edit)"},
+  "test_credentials": "Manager: gerente@meustudio.com/Studio@2026 (RESET during this run because it was found rotated); Pro: ana@meustudio.com/Pro@2026xx; Client: 11988887777/Cliente@2026 (studio slug meu-studio).",
+  "seed_data_creation": "1 quick appointment on 2028-05-15 20:00Z (Carla, Ana). 1 client booking on 2028-06-05 09:00Z (waiting -> confirmed -> then refused during test). All prefixed conceptually as TEST data. Also attempted to create TEST_ProNoPhone/TEST_EmptyPhone professionals (both rejected by 422 as expected — no rows added).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Meu Studio state after this run: appt 597d7a04-... was confirmed then refused. Backend cookie auth uses Partitioned/SameSite=None; requests.Session cookies don't persist, so tests extract access_token cookie and use Bearer header. pytest addopts is `-n 2 --dist loadscope` (do not override). Ana's working_hours missing keys makes /profissionais edit crash — reproduce by clicking edit-pro-<Ana_id>.",
+  "rca of the issue": "Professionals.jsx line 34: `working_hours: p.working_hours && Object.keys(p.working_hours).length ? p.working_hours : emptyForm.working_hours`. When p.working_hours has SOME keys (e.g. mon..fri) but not all 7 days, the fallback isn't used and DOW.map hits `form.working_hours['sat']` = undefined, then reads `.closed` → crash. Fix: deep-merge per day with emptyForm defaults."
+}

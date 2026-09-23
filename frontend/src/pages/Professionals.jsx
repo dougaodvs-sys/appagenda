@@ -31,7 +31,8 @@ export default function Professionals() {
   const openNew = () => { setEditing(null); setForm(emptyForm); setOpen(true); };
   const openEdit = (p) => {
     setEditing(p);
-    setForm({ ...emptyForm, ...p, password: "", working_hours: p.working_hours && Object.keys(p.working_hours).length ? p.working_hours : emptyForm.working_hours });
+    const wh = DOW.reduce((acc, d) => ({ ...acc, [d.key]: p.working_hours?.[d.key] || { open: "09:00", close: "18:00", closed: true } }), {});
+    setForm({ ...emptyForm, ...p, password: "", working_hours: wh });
     setOpen(true);
   };
 

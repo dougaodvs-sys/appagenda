@@ -51,6 +51,14 @@ Stack: FastAPI + MongoDB + React (CRA/craco) + Tailwind + shadcn/ui.
 - Frontend `QuickBooking.jsx`: abas "Cliente cadastrada" (busca + select) / "Sem cadastro"; profissional não escolhe profissional; "Digitar horário livremente". Badge âmbar "Encaixe" (`QuickBadge`) na Agenda (borda esquerda âmbar) e em Agendamentos. Agenda pula para o dia do encaixe. `STATUS_META` ganhou `color`. (iteration_6)
 - Dados de teste no Meu Studio: serviço "Design de Sobrancelha", profissional ana@meustudio.com, cliente 11988887777.
 
+## Avisos por WhatsApp (link pronto wa.me) — 2026-06
+- Decisão do usuário: click-to-chat (sem envio automático / sem Twilio). Sempre usa números cadastrados (cliente: cadastro; profissional: telefone salvo pelo gerente).
+- Backend `GET /appointments/{id}/whatsapp?origin=` → `targets[]` {role client|professional, name, phone(55…), text, wa_url}. Gerente: cliente + profissionais; profissional: exclui a si mesmo; cliente: só os próprios agendamentos e só alvos profissional. Textos: `_client_status_text` (confirmado / aguardando / recusado-cancelado) e `_pro_text` (Encaixe/Novo agendamento + telefone da cliente).
+- Telefone do profissional obrigatório: `ProfessionalIn.phone` min 8, PUT rejeita vazio (400), PUT sincroniza `users.phone`.
+- Frontend `components/WhatsAppNotify.jsx` (`WhatsAppNotifyDialog`, testids `wa-*`). Abre após: encaixe (Agenda e Agendamentos), confirmar/recusar/cancelar (Agendamentos), reserva da cliente (`ClientBooking` tela `booking-success` → só profissional). Botão "WhatsApp" em cada card de Agendamentos. Antigo InviteDialog/`/invite` substituído no front (endpoint `/invite` ainda existe no backend).
+- Fix: `Professionals.jsx openEdit` quebrava quando `working_hours` não tinha todos os dias → dias ausentes agora = fechado.
+- Testado: iteration_7 (backend 8/8, frontend OK; bug do editar corrigido e verificado por screenshot).
+
 ## Next backlog
 - P1: Editar nome/e-mail de um super admin e redefinir senha pelo super admin.
 - P1: Testar fluxos completos do studio (agenda, reservas, cupons, uploads). Storage init retorna 400 — verificar upload de galeria.
