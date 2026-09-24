@@ -1,0 +1,31 @@
+{
+  "summary": "Verified Lembretes page, Agenda move/cancel actions with WhatsApp notify, quick booking cancel flow, manager pro-filter, and responsive fixes (390/820). Backend reschedule (409 without force, 200 with force) and /appointments/reminders (manager/pro scoping, client 403) all pass. 4 backend tests passed, 1 skipped (no other-pro appt); 100% frontend flows worked as specified.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/lembretes (custom date)", "issues": ["When a specific date is picked (not hoje/amanhã), page title reads 'Horários de no dia 15/05' — awkward Portuguese due to backend returning label 'no dia 15/05' concatenated with 'Horários de '. Consider changing UI concat to 'Horários {label}' (=> 'Horários no dia 15/05') or backend label to 'do dia 15/05'."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_reminders_reschedule.py",
+    "/app/test_reports/pytest/reminders_reschedule.xml"
+  ],
+  "action_items": [
+    "Minor copy fix: /lembretes title reads 'Horários de no dia 15/05' when a custom date is selected. Adjust concatenation in Reminders.jsx or the when_label in server.py appointment_reminders."
+  ],
+  "critical_code_review_comments": [
+    "Reminders.jsx: proFilter effect fires request even before pros load; harmless but could result in double-fetch. Consider guarding on pros length for managers.",
+    "AgendaItemActions.jsx: after successful move, day state uses input value (naive local date). Works for happy path but if user moves to a date in a different local TZ from server (BR_TZ), agenda-day filter may drift by one day. Not observed in this test since date input is local YYYY-MM-DD.",
+    "server.py reschedule_appointment: sets forced=True whenever appt.forced OR data.force; forced flag is 'sticky' — once forced, subsequent non-force reschedules still keep forced=True. Cosmetic only."
+  ],
+  "updated_files": ["/app/backend/tests/test_reminders_reschedule.py"],
+  "success_rate": {"backend": "100% (4/4 exec, 1 skipped by design)", "frontend": "100%"},
+  "test_credentials": "Manager gerente@meustudio.com/Studio@2026; Pro ana@meustudio.com/Pro@2026xx; Client 11988887777/Cliente@2026; Super admin dvssystem@hotmail.com/Douglas0101 — all valid at test time.",
+  "seed_data_creation": "Moved the pre-existing Carla appt (item 414c5973...) from 23:30 UTC to 21:00 local on 2028-05-15 (as prescribed by review request). Created and then cancelled a quick booking on 2028-05-16 10:00 local (item 2b4f4f00...). Reschedule test created & cancelled its own appt (cleaned up in finally).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Seed Carla appt on 2028-05-15 now sits at 21:00 local (was 23:30Z). If a subsequent test needs it back at 23:30Z, re-move via /appointments/{id}/reschedule. Cookie auth continues to work with requests.Session in pytest.",
+  "rca of the issue": "N/A — no functional bugs found. Only minor copy issue in reminders page title for custom dates."
+}

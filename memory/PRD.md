@@ -59,6 +59,12 @@ Stack: FastAPI + MongoDB + React (CRA/craco) + Tailwind + shadcn/ui.
 - Fix: `Professionals.jsx openEdit` quebrava quando `working_hours` não tinha todos os dias → dias ausentes agora = fechado.
 - Testado: iteration_7 (backend 8/8, frontend OK; bug do editar corrigido e verificado por screenshot).
 
+## Lembretes + Mover/Cancelar + Responsivo — 2026-06
+- `GET /appointments/reminders?day=&professional_id=` (manager/professional; profissional só os seus) → itens do dia (BR_TZ) com texto de lembrete e `wa_url`. Página `/lembretes` (nav manager + profissional): Hoje/Amanhã/data, filtro de profissional (manager), botão "Lembrar no WhatsApp" por cliente.
+- `POST /appointments/{id}/reschedule` {item_id, start, force} (staff; profissional só própria agenda; encaixe ignora horário de funcionamento; conflitos → 409 salvo force). Frontend `components/AgendaItemActions.jsx`: botões Mover/Cancelar no card da Agenda (dialogs `move-*`, `cancel-*`), abrem WhatsAppNotify após a ação.
+- Responsivo: auditoria em 390/820px de todas as telas (staff, cliente, plataforma, pública). Corrigidos: abas do Encaixe rápido dentro de dialog (grid→flex por causa do CSS global `[role=dialog] .grid-cols-2`), linhas de horários do profissional (wrap), histórico de acessos em cards no mobile (`login-history-list`). Regra global em `App.css` (`.responsive-shell`) já cobre grids/dialogs.
+- Testado: iteration_8 (backend 4/4 + 1 skip, frontend 100%).
+
 ## Next backlog
 - P1: Editar nome/e-mail de um super admin e redefinir senha pelo super admin.
 - P1: Testar fluxos completos do studio (agenda, reservas, cupons, uploads). Storage init retorna 400 — verificar upload de galeria.

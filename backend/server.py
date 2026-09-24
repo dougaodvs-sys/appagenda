@@ -1690,7 +1690,8 @@ async def appointment_reminders(day: Optional[str] = None, professional_id: Opti
         q["items.professional_id"] = pid
     settings = await db.settings.find_one(tenant_query(user, {"key": "studio"})) or {}
     studio = settings.get("name") or "Studio"
-    when_label = "amanhã" if target == today_br + timedelta(days=1) else ("hoje" if target == today_br else f"no dia {target.strftime('%d/%m')}")
+    when_label = "amanhã" if target == today_br + timedelta(days=1) else ("hoje" if target == today_br else f"{target.strftime('%d/%m')}")
+    when_text = when_label if when_label in ("hoje", "amanhã") else f"no dia {when_label}"
     rows = []
     async for appt in db.appointments.find(q, {"_id": 0}):
         summary = await _build_summary(appt)
@@ -1698,7 +1699,7 @@ async def appointment_reminders(day: Optional[str] = None, professional_id: Opti
             st = _dt(it["start"])
             if not (day_start <= st < day_end) or (pid and it["professional_id"] != pid):
                 continue
-            text = _reminder_text(studio, summary.get("client_name"), it, when_label)
+            text = _reminder_text(studio, summary.get("client_name"), it, when_text)
             phone = _wa_phone(summary.get("client_phone"))
             rows.append({"appointment_id": appt["id"], "item_id": it["id"], "start": it["start"],
                          "client_name": summary.get("client_name"), "client_phone": phone,
