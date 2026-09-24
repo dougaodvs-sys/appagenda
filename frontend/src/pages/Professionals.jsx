@@ -109,12 +109,14 @@ export default function Professionals() {
                   {DOW.map((d) => {
                     const wh = form.working_hours[d.key];
                     return (
-                      <div key={d.key} className="flex items-center gap-3 text-sm">
+                      <div key={d.key} className="flex flex-wrap items-center gap-2 text-sm">
                         <span className="w-20">{d.label}</span>
                         <Switch checked={!wh.closed} onCheckedChange={(v) => setForm({ ...form, working_hours: { ...form.working_hours, [d.key]: { ...wh, closed: !v } } })} />
-                        <Input type="time" className="w-28" value={wh.open} disabled={wh.closed} onChange={(e) => setForm({ ...form, working_hours: { ...form.working_hours, [d.key]: { ...wh, open: e.target.value } } })} />
-                        <span>—</span>
-                        <Input type="time" className="w-28" value={wh.close} disabled={wh.closed} onChange={(e) => setForm({ ...form, working_hours: { ...form.working_hours, [d.key]: { ...wh, close: e.target.value } } })} />
+                        <div className="flex items-center gap-2 basis-full sm:basis-auto sm:ml-1">
+                          <Input type="time" className="w-28 min-w-0" value={wh.open} disabled={wh.closed} onChange={(e) => setForm({ ...form, working_hours: { ...form.working_hours, [d.key]: { ...wh, open: e.target.value } } })} />
+                          <span>—</span>
+                          <Input type="time" className="w-28 min-w-0" value={wh.close} disabled={wh.closed} onChange={(e) => setForm({ ...form, working_hours: { ...form.working_hours, [d.key]: { ...wh, close: e.target.value } } })} />
+                        </div>
                       </div>
                     );
                   })}

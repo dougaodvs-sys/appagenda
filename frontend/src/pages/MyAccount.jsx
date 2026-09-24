@@ -84,7 +84,21 @@ function LoginHistoryCard() {
         {loading && <div className="text-muted-foreground text-sm">Carregando…</div>}
         {!loading && events.length === 0 && <div data-testid="login-history-empty" className="text-muted-foreground text-sm">Nenhum acesso registrado ainda.</div>}
         {!loading && events.length > 0 && (
-          <div className="overflow-x-auto -mx-2">
+          <>
+          <div className="sm:hidden space-y-2" data-testid="login-history-list">
+            {events.map((ev) => (
+              <div key={ev.id} className="rounded-lg border border-border/60 p-3 text-sm flex flex-col gap-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span>{new Date(ev.at).toLocaleString("pt-BR")}</span>
+                  {ev.success
+                    ? <Badge className="bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/15 border-emerald-500/30">Sucesso</Badge>
+                    : <Badge className="bg-rose-500/15 text-rose-400 hover:bg-rose-500/15 border-rose-500/30">Senha incorreta</Badge>}
+                </div>
+                <div className="text-xs text-muted-foreground">{browserLabel(ev.user_agent)}{deviceLabel(ev.user_agent) && ` · ${deviceLabel(ev.user_agent)}`} · <span className="font-mono">{ev.ip || "—"}</span></div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden sm:block overflow-x-auto -mx-2">
             <table className="w-full text-sm" data-testid="login-history-table">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-widest text-muted-foreground border-b border-border">
@@ -113,6 +127,7 @@ function LoginHistoryCard() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </CardContent>
     </Card>
