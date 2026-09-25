@@ -78,11 +78,11 @@ export default function Appointments() {
               <div className="mt-4 flex justify-between items-center flex-wrap gap-3">
                 <div className="text-sm">
                   <div>Total: <span className="font-medium text-foreground">{brl(a.total)}</span> {a.discount > 0 && <span className="text-primary">(cupom -{brl(a.discount)})</span>}</div>
-                  <div className="text-muted-foreground">Sinal ({a.signal_percent}%): {brl(a.signal_value)} {a.signal_paid && <span className="text-primary">• pago</span>}</div>
+                  {a.signal_percent > 0 && <div className="text-muted-foreground">Sinal ({a.signal_percent}%): {brl(a.signal_value)} {a.signal_paid && <span className="text-primary">• pago</span>}</div>}
                   {a.status === "cancelled" && a.cancellation_reason && <div className="text-destructive mt-1">Motivo: {a.cancellation_reason}</div>}
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  {user.role !== "client" && !a.signal_paid && a.status === "waiting" && (
+                  {user.role !== "client" && a.signal_percent > 0 && !a.signal_paid && a.status === "waiting" && (
                     <Button size="sm" variant="outline" onClick={() => markSignal(a.id)} data-testid={`signal-${a.id}`}>Marcar sinal pago</Button>
                   )}
                   {user.role !== "client" && ["waiting","signal_paid","signal_pending"].includes(a.status) && (

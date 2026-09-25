@@ -333,12 +333,11 @@ class StudioSettingsIn(BaseModel):
     address: Optional[str] = ""
     phone: Optional[str] = ""
     whatsapp: Optional[str] = ""
-    instagram: Optional[str] = ""
     email: Optional[str] = ""
-    primary_color: Optional[str] = "#D4A93A"
     opening_hours: dict = Field(default_factory=dict)
-    default_signal_percent: int = 30
-    referral_discount_percent: int = 10
+    default_signal_percent: int = Field(default=30, ge=0, le=100)
+    referral_enabled: bool = True
+    referral_discount_percent: int = Field(default=10, ge=0, le=100)
 
 class StudioIn(BaseModel):
     name: str
@@ -520,6 +519,9 @@ async def register(data: RegisterIn, response: Response):
         raise HTTPException(400, "Telefone já cadastrado. Faça login com telefone e senha.")
     referred_by = None
     if data.referral_code:
+        st = await db.settings.find_one({"key": "studio", "studio_id": studio_id}) or {}
+        if st.get("referral_enabled", True) is False:
+            raise HTTPException(400, "Programa de indicação desativado neste Studio")
         ref = await db.users.find_one({"referral_code": data.referral_code.upper().strip(), "role": "client",
                                        "studio_id": studio_id})
         if not ref:
@@ -664,12 +666,13 @@ async def get_settings(user: dict = Depends(get_current_user)):
     result.setdefault("address", "")
     result.setdefault("phone", "")
     result.setdefault("whatsapp", "")
-    result.setdefault("instagram", "")
     result.setdefault("email", "")
-    result.setdefault("primary_color", "#D4A93A")
     result.setdefault("opening_hours", {})
     result.setdefault("default_signal_percent", 30)
+    result.setdefault("referral_enabled", True)
     result.setdefault("referral_discount_percent", 10)
+    result.pop("instagram", None)
+    result.pop("primary_color", None)
     if studio:
         result["slug"] = studio.get("slug")
         result["public_url"] = f"/studio/{studio.get('slug')}"
@@ -680,7 +683,8 @@ async def update_settings(data: StudioSettingsIn, user: dict = Depends(require_r
     doc = data.model_dump()
     doc["key"] = "studio"
     doc["studio_id"] = tenant_id(user)
-    await db.settings.update_one(tenant_query(user, {"key": "studio"}), {"$set": doc}, upsert=True)
+    await db.settings.update_one(tenant_query(user, {"key": "studio"}),
+                                 {"$set": doc, "$unset": {"instagram": "", "primary_color": ""}}, upsert=True)
     s = await db.settings.find_one(tenant_query(user, {"key": "studio"}))
     s.pop("_id", None)
     studio = await db.studios.find_one({"id": user.get("studio_id")}, {"_id": 0, "slug": 1})
@@ -839,6 +843,7 @@ async def public_studio_config(slug: str):
     return {"studio_id": studio["id"], "slug": studio["slug"],
             "name": (settings or {}).get("name") or studio["name"],
             "logo_url": logo_url,
+            "referral_enabled": (settings or {}).get("referral_enabled", True) is not False,
             "public_url": f"/studio/{studio['slug']}"}
 
 @api.get("/public/studios/{slug}/logo")
@@ -1910,7 +1915,11 @@ async def _reward_referral(referred_id: str, referrer_id: Optional[str] = None,
     if not referrer:
         return None
     settings = await db.settings.find_one({**scope, "key": "studio"}) or {}
-    pct = int(settings.get("referral_discount_percent", 10) or 10)
+    if settings.get("referral_enabled", True) is False:
+        return None
+    pct = int(settings.get("referral_discount_percent", 10) or 0)
+    if pct <= 0:
+        return None
     code = f"INDICA{secrets.randbelow(900000) + 100000}"
     coupon = {
         "id": uid(), "code": code, "discount_percent": pct, "scope": "studio",

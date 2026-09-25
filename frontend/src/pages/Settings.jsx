@@ -15,11 +15,10 @@ const DEFAULT_SETTINGS = {
   address: "",
   phone: "",
   whatsapp: "",
-  instagram: "",
   email: "",
-  primary_color: "#D4A93A",
   opening_hours: {},
   default_signal_percent: 30,
+  referral_enabled: true,
   referral_discount_percent: 10,
 };
 
@@ -64,11 +63,30 @@ export default function Settings() {
           <div className="sm:col-span-2"><Label>Endereço</Label><Input value={s.address || ""} onChange={(e) => setS({ ...s, address: e.target.value })} /></div>
           <div><Label>Telefone</Label><Input value={s.phone || ""} onChange={(e) => setS({ ...s, phone: e.target.value })} /></div>
           <div><Label>WhatsApp</Label><Input value={s.whatsapp || ""} onChange={(e) => setS({ ...s, whatsapp: e.target.value })} /></div>
-          <div><Label>Instagram</Label><Input value={s.instagram || ""} onChange={(e) => setS({ ...s, instagram: e.target.value })} /></div>
           <div><Label>E-mail</Label><Input value={s.email || ""} onChange={(e) => setS({ ...s, email: e.target.value })} /></div>
-          <div><Label>Cor primária</Label><Input type="color" value={s.primary_color || "#D4A93A"} onChange={(e) => setS({ ...s, primary_color: e.target.value })} className="h-10" /></div>
-          <div><Label>% Sinal padrão</Label><Input data-testid="s-signal" type="number" value={s.default_signal_percent || 30} onChange={(e) => setS({ ...s, default_signal_percent: parseInt(e.target.value || "0") })} /></div>
-          <div><Label>% Cupom Indica (por amiga trazida)</Label><Input data-testid="s-referral" type="number" value={s.referral_discount_percent ?? 10} onChange={(e) => setS({ ...s, referral_discount_percent: parseInt(e.target.value || "0") })} /></div>
+          <div>
+            <Label>% Sinal padrão (opcional, 0 a 100)</Label>
+            <Input data-testid="s-signal" type="number" min={0} max={100} value={s.default_signal_percent ?? 0} onChange={(e) => setS({ ...s, default_signal_percent: Math.min(100, Math.max(0, parseInt(e.target.value || "0", 10))) })} />
+            <p className="text-xs text-muted-foreground mt-1">{(s.default_signal_percent ?? 0) === 0 ? "Sem sinal: as reservas não exigem pagamento antecipado." : `Sinal de ${s.default_signal_percent}% do total no agendamento.`}</p>
+          </div>
+          <div className="sm:col-span-2 rounded-lg border border-border bg-secondary/20 p-4 space-y-3" data-testid="s-referral-box">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <div className="text-sm font-medium">Cupom Indica (por amiga trazida)</div>
+                <div className="text-xs text-muted-foreground">Quando ativo, a cliente ganha um cupom ao trazer uma amiga que conclui a primeira visita.</div>
+              </div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Switch data-testid="s-referral-enabled" checked={s.referral_enabled !== false} onCheckedChange={(v) => setS({ ...s, referral_enabled: v })} />
+                {s.referral_enabled !== false ? "Ativo" : "Desativado"}
+              </label>
+            </div>
+            {s.referral_enabled !== false && (
+              <div className="max-w-xs">
+                <Label>% de desconto do cupom</Label>
+                <Input data-testid="s-referral" type="number" min={0} max={100} value={s.referral_discount_percent ?? 10} onChange={(e) => setS({ ...s, referral_discount_percent: Math.min(100, Math.max(0, parseInt(e.target.value || "0", 10))) })} />
+              </div>
+            )}
+          </div>
           {s.public_url && <div className="sm:col-span-2"><Label>Link público para agendamentos</Label><div className="flex flex-col sm:flex-row gap-2 mt-1"><Input readOnly value={`${window.location.origin}${s.public_url}`} /><Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}${s.public_url}`); toast.success("Link copiado"); }}><Copy size={14} className="mr-2" />Copiar</Button></div></div>}
         </div>
       </Card>

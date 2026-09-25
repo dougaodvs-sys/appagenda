@@ -74,7 +74,7 @@ export default function ClientHome() {
         <p className="text-sm text-muted-foreground mt-2 max-w-lg">Monte seu combo de procedimentos com uma ou mais profissionais no mesmo dia.</p>
         <Button data-testid="go-book" onClick={() => nav("/reservar")} className="mt-6 rounded-full bg-primary text-primary-foreground hover:bg-primary/90">Iniciar reserva</Button>
       </Card>
-      <ReferralCard settings={settings} />
+      {settings?.referral_enabled !== false && <ReferralCard settings={settings} />}
     </div>
   );
 }
