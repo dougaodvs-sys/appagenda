@@ -65,6 +65,13 @@ Stack: FastAPI + MongoDB + React (CRA/craco) + Tailwind + shadcn/ui.
 - Responsivo: auditoria em 390/820px de todas as telas (staff, cliente, plataforma, pública). Corrigidos: abas do Encaixe rápido dentro de dialog (grid→flex por causa do CSS global `[role=dialog] .grid-cols-2`), linhas de horários do profissional (wrap), histórico de acessos em cards no mobile (`login-history-list`). Regra global em `App.css` (`.responsive-shell`) já cobre grids/dialogs.
 - Testado: iteration_8 (backend 4/4 + 1 skip, frontend 100%).
 
+## Configurações do Studio — 2026-06
+- `% Sinal padrão` opcional 0–100 (Field ge/le; 0 = sem sinal → linha "Sinal" e botão "Marcar sinal pago" ocultos em Agendamentos).
+- `referral_enabled` (switch "Cupom Indica"): quando off, campo % oculto, `_reward_referral` não gera cupom, registro com código → 400, `ReferralCard` oculto no /inicio, campo de código oculto no /register (via `/public/studios/{slug}/config.referral_enabled`).
+- Removidos Instagram e Cor primária (model, GET pop, PUT $unset, UI).
+- Dado: usuário renomeou o studio padrão para "E & M Espaço Mulher" e gerencia licenças; "Meu Studio" (teste) licença estendida até 2030.
+- Testado: iteration_9 (backend 6/6, frontend OK).
+
 ## Next backlog
 - P1: Editar nome/e-mail de um super admin e redefinir senha pelo super admin.
 - P1: Testar fluxos completos do studio (agenda, reservas, cupons, uploads). Storage init retorna 400 — verificar upload de galeria.

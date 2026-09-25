@@ -1,0 +1,25 @@
+{
+  "summary": "Verified Studio Settings changes (default_signal_percent optional 0-100, referral_enabled toggle, Instagram/primary_color removed). All 6 backend pytest tests pass; frontend manager + client flows validated end-to-end for both referral OFF/sinal=0 and referral ON/sinal=30 states.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_settings_referral.py",
+    "/app/test_reports/pytest/iteration_9.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is ~2180 lines — consider splitting into modules (routers, models, services) once feature freeze permits."
+  ],
+  "updated_files": ["/app/backend/tests/test_settings_referral.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Manager gerente@meustudio.com / Studio@2026 (login uses field 'identifier', not 'email'); Client 11988887777 / Cliente@2026 studio=meu-studio",
+  "seed_data_creation": "None. Final state: default_signal_percent=30, referral_enabled=true, referral_discount_percent=10 (restored).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend /api/auth/login expects {identifier, password}. Public register endpoint is POST /api/auth/register with body {name, phone, password, studio_slug, referral_code?}. Test file test_settings_referral.py covers: instagram/primary_color removed, signal>100 -> 422, signal=0 -> 200 & appointments reflect 0, public config exposes referral_enabled, register blocked when referral disabled, defaults restore.",
+  "detailed_frontend_checks": {
+    "manager_configuracoes": "No Instagram/Cor primária inputs. s-signal clamps 150->100, accepts 0. s-referral-box has s-referral-enabled switch; switching off hides s-referral (removed from DOM). settings-save shows toast 'Configurações salvas'; values persist across reload.",
+    "client_referral_off": "/inicio has no referral-card; /agendamentos has no 'Sinal (' line when signal=0; /register?studio=meu-studio has no reg-referral field.",
+    "client_referral_on": "/inicio shows referral-card ('Programa Indica'); /register?studio=meu-studio shows reg-referral."
+  }
+}
